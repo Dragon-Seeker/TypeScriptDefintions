@@ -14,7 +14,9 @@ export type TypeMap = {
     [key: string]: string[];
 };
 
-export default class Mime {
+declare var mime: Mime;
+
+export class Mime {
     constructor(...args: TypeMap[]);
 
     /**
