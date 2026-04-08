@@ -404,7 +404,7 @@ async function readZipDataToNode(root, zipBlob, addCallback) {
             if (segmentObject.type === 'directory') {
                 currentLevel = segmentObject;
             } else if(segmentObject.type === 'zip' && !segmentObject.zipEntry.encrypted) {
-                await readZipDataToNode(segmentObject, new Blob([await fileOrNull(segmentObject.zipEntry)?.arrayBuffer()]));
+                await readZipDataToNode(segmentObject, new Blob([await fileOrNull(segmentObject)?.arrayBuffer()]), addCallback);
             }
         }
     }
