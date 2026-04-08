@@ -369,11 +369,10 @@ async function generateZipTree(zipBlob) {
 
 /**
  * Method used to read the current zipBlob into the given root node which can be a root node or the root node of a new inner zip file
- * @template {TreeNode} N
- * @param {TreeNode<N>} root
+ * @param {TreeNode<ZipTreeNode>} root
  * @param {Blob} zipBlob
  * @param {(TreeNode) => void} addCallback
- * @returns {TreeNode<N>}
+ * @returns {TreeNode<ZipTreeNode>}
  */
 async function readZipDataToNode(root, zipBlob, addCallback) {
     const zip = createZipReader(createBlobReader(zipBlob));
@@ -405,7 +404,7 @@ async function readZipDataToNode(root, zipBlob, addCallback) {
             // Move pointer deeper into the tree if it's a directory
             if (segmentObject.type === 'directory') {
                 currentLevel = segmentObject;
-            } else if(segmentObject.type === 'zip' && !segmentObject.entry.encrypted) {
+            } else if(segmentObject.type === 'zip' && !segmentObject.zipEntry.encrypted) {
                 await readZipDataToNode(segmentObject, new Blob([await segmentObject.entry.arrayBuffer()]));
             }
         }
