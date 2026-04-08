@@ -363,8 +363,7 @@ async function generateZipTree(zipBlob) {
     children: {},
     entries: entries,
   };
-  await readZipDataToNode(root, zipBlob, (node) => entries.push(node))
-  return root;
+  return await readZipDataToNode(root, zipBlob, (node) => entries.push(node));
 }
 
 /**
@@ -372,7 +371,7 @@ async function generateZipTree(zipBlob) {
  * @param {TreeNode<ZipTreeNode>} root
  * @param {Blob} zipBlob
  * @param {(TreeNode) => void} addCallback
- * @returns {TreeNode<ZipTreeNode>}
+ * @returns {Promise<TreeNode<ZipTreeNode>>}
  */
 async function readZipDataToNode(root, zipBlob, addCallback) {
     const zip = createZipReader(createBlobReader(zipBlob));
@@ -405,8 +404,10 @@ async function readZipDataToNode(root, zipBlob, addCallback) {
             if (segmentObject.type === 'directory') {
                 currentLevel = segmentObject;
             } else if(segmentObject.type === 'zip' && !segmentObject.zipEntry.encrypted) {
-                await readZipDataToNode(segmentObject, new Blob([await segmentObject.entry.arrayBuffer()]));
+                await readZipDataToNode(segmentObject, new Blob([await fileOrNull(segmentObject.zipEntry)?.arrayBuffer()]));
             }
         }
     }
+
+    return root;
 }
