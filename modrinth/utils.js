@@ -304,7 +304,7 @@ const app = {
      * @param {string|object} text - 
      */
     infomUser(type, title, msg) {
-        if (type instanceof string) type = MessageType[type];
+        if (type instanceof String) type = MessageType[type];
         const logMsg = [`[${title}]:`, msg];
         if (type.name == "error") {
             console.error(logMsg);
