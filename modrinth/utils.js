@@ -393,3 +393,40 @@ function waitForElementValue(selector, getter, interval = 100) {
         }, interval);
     });
 }
+
+async function getModrinthIdOrSlug(url) {
+    return (await getModrinthProject(getSlugFromURL(url))).id;
+}
+
+/**
+ * @typedef ModrinthProject
+ * @type {object}
+ * @property {string} name - Title of the given project i.e. its name
+ * @property {string} id - project id.
+ * @property {string} slug - project slug.
+ * @property {string} project_type - project type
+ * @property {DonationLink[]} donation_urls - Donation urls of the project
+ * @property {string} issues_url - Url for project issues
+ * @property {string} source_url - Url for project sources
+ * @property {string} wiki_url - Url for project wiki
+ * @property {string} discord_url - Url for project discord
+ * @property {string} team_id - Id for the team of the project
+ * @property {string} organization - Id for the organization of the project
+ */
+
+/**
+ * @returns {Promise<ModrinthProject>}
+ */
+async function getModrinthProjecFromtUrl(url) {
+    return (await getModrinthProject(getSlugFromURL(url)));
+}
+
+/**
+ * @returns {Promise<ModrinthProject>}
+ */
+async function getModrinthProject(id) {
+    return validateModrinthResponse(await app.labrinthGetRequest(`/project/${id}`), (msg) => {
+        app.error(`Project Info Getter`, msg)
+        return { id: id }
+    });
+}
