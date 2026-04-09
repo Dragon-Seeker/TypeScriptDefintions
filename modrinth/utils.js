@@ -263,6 +263,16 @@ function getSlugFromURL(/*** @type {string} */ url){
     return slug;
 }
 
+function validateModrinthResponse(response, onError) {
+    if (response.name == "ModrinthApiError" || response.name == "ModrinthErrorResponse") {
+        return onError(response);
+    } else if(response.error) {
+        return onError(`${response.error} - ${response.description}`);
+    }
+    
+    return response
+}
+
 const app = {
     /** 
      * @private
