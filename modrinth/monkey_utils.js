@@ -1,3 +1,42 @@
+/**
+ * @template T
+ */
+class Observerable {
+    /** @type(Array<MutationCallback<T>>) */
+    listeners = [];
+    /** @readonly @type(() => T) */
+    get;
+    /** @readonly @type((T) => T) */
+    set;
+
+    /**
+     * @constructor
+     * @param {() => T} getCallback
+     * @param {((value: T) => T)?} setCallback
+     */
+    constructor (getCallback, setCallback) {
+        this.get = getCallback;
+        this.set = (value) => {
+            if (setCallback != null) value = setCallback(value);
+            this.onChangeInvoker(value);
+            return value;
+        };
+    }
+
+    /*** @type((callback: MutationCallback<T>) => void) */
+    onChange = (callback) => this.listeners.push(callback);
+    
+    /** 
+     * @protected
+     * @type(MutationCallback<T>) 
+     */
+    onChangeInvoker = (value) => {
+        for (const callback of this.listeners) {
+            callback(value)
+        }
+    }
+}
+
 /*** @typedef {{[key: string]: T} | Map<String, T> | Array<string>} Collection */
 
 /**
@@ -21,8 +60,7 @@ function generalStatusCodeRange(status) {
     return status >= 200 && status < 300
 }
 
-//#region Monky Defs
-
+// #region Monkey Settings Def
 class Settings {
     /**
      * @template T
@@ -71,8 +109,77 @@ class Settings {
         _settings.set(settingKey, objKey);
         return objKey;
     }
+    /**
+     * @template T
+     * @param {string} key 
+     * @param {(key: string, oldValue: T, newValue: T)} callback 
+     * @returns {string}
+     */
+    onMutation(key, callback) {
+        GM_addValueChangeListener(key, (key, oldValue, newValue) => callback(key, oldValue, newValue));
+    }
+    /**
+     * @template T
+     * @param {string} key
+     * @param {T} defaultValue
+     * @param {((object) => T) | undefined} decoder
+     * @param {((T) => object) | undefined} encoder
+     * @returns {CachedSetting<T>}
+     */
+    of(key, defaultValue, decoder = (obj) => obj, encoder = (obj) => obj) {
+        return CachedSetting(this, key, defaultValue, decoder, encoder);
+    }
 }
 
+/**
+ * @template T
+ * @extends {Observerable<T>}
+ */
+class CachedSetting extends Observerable {
+    /** 
+     * @private
+     * @type(T) 
+     * */
+    value;
+    /** 
+     * @type(string) 
+     * */
+    key;
+
+    /**
+     * @constructor
+     * @param {Settings} settings
+     * @param {string} key
+     * @param {T} defaultValue
+     * @param {((object) => T) | undefined} decoder
+     * @param {((T) => object) | undefined} encoder
+     */
+    constructor (settings, key, defaultValue, decoder = (obj) => obj, encoder = (obj) => obj) {
+        super(() => this.value, (value) => settings.set(key, encoder(value)));
+        this.key = key;
+        this.value = decoder(settings.get(key)) ?? defaultValue;
+        settings.onMutation(key, (key, oldValue, newValue) => {
+            this.value = decoder(newValue);
+            this.onChangeInvoker(this.value);
+        })
+    }
+
+    /**
+     * @template T
+     * @param {() => Promise<T>} getCallback
+     * @param {((value: T) => T)?} setCallback
+     * @param {Consumer<Consumer<T>>} externalSourceUpdate
+     * @returns {Promise<CachedObserverable<T>>}
+     */
+    static async of(getCallback, setCallback, externalSourceUpdate) {
+        const entry = await getCallback();
+        return new CachedObserverable(() => entry, setCallback, externalSourceUpdate);
+    }
+}
+
+// #endregion
+
+// #region Monkey Object Def
 const monkey = {
     /**
      * Method used to send http requests from within this tamper monkey script
