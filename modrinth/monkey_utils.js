@@ -137,31 +137,43 @@ class Settings {
  */
 class CachedSetting extends Observerable {
     /** 
+     * @type(string) 
+     * */
+    key;
+    /** 
+     * @type(T) 
+     * */
+    defaultValue;
+    /** 
      * @private
      * @type(T) 
      * */
     value;
-    /** 
-     * @type(string) 
-     * */
-    key;
 
     /**
      * @constructor
      * @param {Settings} settings
      * @param {string} key
      * @param {T} defaultValue
-     * @param {((object) => T) | undefined} decoder
+
      * @param {((T) => object) | undefined} encoder
      */
     constructor (settings, key, defaultValue, decoder = (obj) => obj, encoder = (obj) => obj) {
         super(() => this.value, (value) => settings.set(key, encoder(value)));
         this.key = key;
-        this.value = decoder(settings.get(key)) ?? defaultValue;
-        settings.onMutation(key, (key, oldValue, newValue) => {
-            this.value = decoder(newValue);
+        this.defaultValue = defaultValue;
+        this.#setupValue(settings.get(key), defaultValue, decoder);
+        settings.onMutation(key, async (key, oldValue, newValue) => {
+            this.value = await decoder(newValue);
             this.onChangeInvoker(this.value);
         })
+    }
+
+    /**
+     * @param {((object) => T | Promise<T>) | undefined} decoder
+     */
+    async #setupValue(rawValue, defaultValue, decoder) {
+        this.value = (rawValue != null) ? await decoder(rawValue) : defaultValue;
     }
 
     /**
