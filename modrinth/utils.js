@@ -12,6 +12,23 @@
  */
 
 /**
+ * @typedef {Object} ModrinthClient
+ * @property {(path: string, data: RequestData) => Promise<object|ModrinthApiError>} request - Method used to send requests within modrinths API using applications client
+ */
+
+/***
+ * @typedef {Object} RequestData
+ * @property        {string}         api - 'labrinth' → api.modrinth.com, 'archon' → archon.modrinth.com, or a full URL
+ * @property {number|string}     version - revisionNumber (→ /v2/), 'internal' (→ /_internal/), or a string
+ * @property        {string}      method - method request type either being GET, POST, PATCH, or DELETE
+ * @property        {string}        path - path for the api request
+ * @property        {object}      params - query string params
+ * @property        {object}        body - request body for PATCH/POST
+ * @property        {object}     headers - extra headers (auth is added automatically!)
+ * @property       {boolean}    skipAuth - opt out of auto-auth useful for public endpoints
+ */
+
+/**
  * Base error class for all Modrinth API errors
  * @typedef {Object} ModrinthApiError
  * @property {number?} statusCode - 
@@ -40,23 +57,21 @@
  * @property {string?} context - 
  */
 
-/***
- * @typedef {Object} RequestData
- * @property        {string}         api - 'labrinth' → api.modrinth.com, 'archon' → archon.modrinth.com, or a full URL
- * @property {number|string}     version - revisionNumber (→ /v2/), 'internal' (→ /_internal/), or a string
- * @property        {string}      method - method request type either being GET, POST, PATCH, or DELETE
- * @property        {string}        path - path for the api request
- * @property        {object}      params - query string params
- * @property        {object}        body - request body for PATCH/POST
- * @property        {object}     headers - extra headers (auth is added automatically!)
- * @property       {boolean}    skipAuth - opt out of auto-auth useful for public endpoints
- */
-
 /**
- * @typedef {Object} ModrinthClient
- * @property {(path: string, data: RequestData) => Promise<object|ModrinthApiError>} request - Method used to send requests within modrinths API using applications client
+ * @typedef ModrinthProject
+ * @type {object}
+ * @property {string} name - Title of the given project i.e. its name
+ * @property {string} id - project id.
+ * @property {string} slug - project slug.
+ * @property {string} project_type - project type
+ * @property {DonationLink[]} donation_urls - Donation urls of the project
+ * @property {string} issues_url - Url for project issues
+ * @property {string} source_url - Url for project sources
+ * @property {string} wiki_url - Url for project wiki
+ * @property {string} discord_url - Url for project discord
+ * @property {string} team_id - Id for the team of the project
+ * @property {string} organization - Id for the organization of the project
  */
-
 
 /**
  * Represents a function that accepts one argument and produces a result.
@@ -188,7 +203,7 @@ class StateManager {
      */
     async #getProjectFor(projectId) {
         if (this.project != null && this.project.id == projectId) return this.project;
-        const project = await getModrinthProject(projectId);
+        const project = await app.projectFor(projectId);
         if (this.url.includes("technical-review")) this.project = project
         return project;
     }
@@ -212,7 +227,7 @@ class StateManager {
             const newSlug = getSlugFromURL(this.url);
             if (newSlug != null) {
                 if (newSlug != this.slug || this.project == null) {
-                    this.project = await getModrinthProjecFromtUrl(this.url);
+                    this.project = await app.projectFromUrl(this.url);
                     this.slug = newSlug;
                 }
 
@@ -263,6 +278,27 @@ function getSlugFromURL(/*** @type {string} */ url){
     return slug;
 }
 
+function waitForElementValue(selector, getter, interval = 100) {
+    return new Promise((resolve) => {
+        const check = setInterval(() => {
+            const el = document.querySelector(selector);
+            var locatedValue = false;
+            if (el) {
+                const value = getter(el);
+                if (value) {
+                    clearInterval(check);
+                    resolve(value);
+                    locatedValue = true;
+                }
+            }
+            if (!locatedValue) app.debug("Waiting for: " + selector)
+        }, interval);
+    });
+}
+
+/**
+ * 
+ */
 function validateModrinthResponse(response, onError) {
     if (response.name == "ModrinthApiError" || response.name == "ModrinthErrorResponse") {
         return onError(response);
@@ -368,24 +404,25 @@ const app = {
      * @param        {object}        body - request body for PATCH/POST
      * @param        {object}     headers - extra headers (auth is added automatically!)
      * @param       {boolean}    skipAuth - opt out of auto-auth useful for public endpoints
-     * @returns {Promise<object|ModrinthApiError>}
+     * @returns {Promise<object|ModrinthApiError|Error>}
      */
-    async request(api, version, method, path, params, body, headers, skipAuth) {
+    request(api, version, method, path, params, body, headers, skipAuth) {
         this.debug("Modrinth API Request", `Running ${api} Request ${method} v${version} at path ${path}`)
         try {
-            const client = await this.client()
-            const result = await client.request(path, {
-                api: api,
-                version: version,
-                method: method,
-                params: params,
-                body: body,
-                headers: headers,
-                skipAuth: skipAuth,
+            return this.client().then(client => {
+                return client.request(path, {
+                    api: api,
+                    version: version,
+                    method: method,
+                    params: params,
+                    body: body,
+                    headers: headers,
+                    skipAuth: skipAuth,
+                }).then(result => {
+                    this.debug("Modrinth API Request", `Value of ${api} Request ${method} v${version} at path ${path} is: ${result}`)
+                    return result;
+                })
             });
-            
-            this.debug("Modrinth API Request", `Value of ${api} Request ${method} v${version} at path ${path} is: ${result}`)
-            return result;
         } catch (err) {
             return err;
         }
@@ -399,170 +436,46 @@ const app = {
      * @param        {object}  headers - extra headers (auth is added automatically!)
      * @param       {boolean} skipAuth - opt out of auto-auth useful for public endpoints
      */
-    async labrinthGetRequest(path, params, body, headers, skipAuth) {
-        return await this.request('labrinth', 3, 'GET', path, params, body, headers, skipAuth)
+    labrinthGetRequest(path, params, body, headers, skipAuth) {
+        return this.request('labrinth', 3, 'GET', path, params, body, headers, skipAuth)
+    },
+    /**
+     * @param {string} url - Url of the given project on modrinth
+     */
+    projectIdFromURl(url) {
+        return this.projectFromUrl(url).then((project) => project.id)
+    },
+    /**
+     * @param {string} url - Url of the given project on modrinth
+     * @returns {Promise<ModrinthProject>}
+     */
+    projectFromUrl(url) {
+        return this.projectFor(getSlugFromURL(url))
+    },
+    /**
+     * @param {Slug|Identifier} id 
+     * @returns {Promise<ModrinthProject>}
+     */
+    async projectFor(id) {
+        return app.labrinthGetRequest(`/project/${id}`).then(obj => {
+            return validateModrinthResponse(obj, (msg) => {
+                app.error(`Project Info Getter`, msg)
+                return { id: id }
+            })
+        });
+    },
+    /**
+     * @param {Slug|Identifier} id 
+     */
+    projectIdFor(id) {
+        return this.projectFor(id).then((project) => project.id)
     },
     state: new StateManager()
 }
 
+/**
+ * @typedef {string} Slug - Slug of a object on modrinth
+ * @typedef {string} Identifier - Identifier of a object on modrinth
+ */
+
 await app.state.initManager();
-
-function waitForElementValue(selector, getter, interval = 100) {
-    return new Promise((resolve) => {
-        const check = setInterval(() => {
-            const el = document.querySelector(selector);
-            var locatedValue = false;
-            if (el) {
-                const value = getter(el);
-                if (value) {
-                    clearInterval(check);
-                    resolve(value);
-                    locatedValue = true;
-                }
-            }
-            if (!locatedValue) app.debug("Waiting for: " + selector)
-        }, interval);
-    });
-}
-
-async function getModrinthIdOrSlug(url) {
-    return (await getModrinthProject(getSlugFromURL(url))).id;
-}
-
-/**
- * @typedef ModrinthProject
- * @type {object}
- * @property {string} name - Title of the given project i.e. its name
- * @property {string} id - project id.
- * @property {string} slug - project slug.
- * @property {string} project_type - project type
- * @property {DonationLink[]} donation_urls - Donation urls of the project
- * @property {string} issues_url - Url for project issues
- * @property {string} source_url - Url for project sources
- * @property {string} wiki_url - Url for project wiki
- * @property {string} discord_url - Url for project discord
- * @property {string} team_id - Id for the team of the project
- * @property {string} organization - Id for the organization of the project
- */
-
-/**
- * @returns {Promise<ModrinthProject>}
- */
-async function getModrinthProjecFromtUrl(url) {
-    return (await getModrinthProject(getSlugFromURL(url)));
-}
-
-/**
- * @returns {Promise<ModrinthProject>}
- */
-async function getModrinthProject(id) {
-    return validateModrinthResponse(await app.labrinthGetRequest(`/project/${id}`), (msg) => {
-        app.error(`Project Info Getter`, msg)
-        return { id: id }
-    });
-}
-
-/**
- * Method used to send http requests from within this tamper monkey script
- * 
- * @param {string}                                                                     url - url target for the request
- * @param {{[key: string]: string;} | undefined}                                    header - extra headers (auth is added automatically!)
- * @returns {Promise<Blob | undefined>}
- */
-async function getBlob(url, header) {
-    return await httpGETRequest("blob", url, header, (response) => response.response, (msg) => {
-        app.error("Blob Fetcher", `Unable to get the desired blob from '${url}' due to the following error: ${msg}`)
-        return null;
-    });
-}
-
-/**
- * Method used to send http requests from within this tamper monkey script
- * 
- * @param {string}                                                                     url - url target for the request
- * @param {{[key: string]: string} | undefined}                                    header - extra headers (auth is added automatically!)
- * @returns {Promise<ArrayBuffer | undefined>}
- */
-async function getArrayBuffer(url, header) {
-    return await httpGETRequest("arraybuffer", url, header, (response) => response.response, (msg) => {
-        app.error("ArrayBuffer Fetcher", `Unable to get the desired array buffer from '${url}' due to the following error: ${msg}`)
-        return null;
-    });
-}
-
-function generalStatusCodeRange(status) {
-    return status >= 200 && status < 300
-}
-
-/**
- * Method used to send http requests from within this tamper monkey script
- * 
- * @template T
- * @param {"arraybuffer", "blob", "json", "stream", "text" or undefined}              type - type of data to be returned from the response
- * @param {string}                                                                     url - url target for the request
- * @param {{[key: string]: string} | undefined}                                    header - extra headers (auth is added automatically!)
- * @param {Func<Object, T>}                                                        handler - Function that handles the response data and turns it into the required data
- * @param {Func<string|number, T>}                                                 onError - Function to handle errors of either caused by the handling of the response or from the request call
- * @returns {Promise<T>}
- */
-async function httpGETRequest(type, url, header, handler, onError) {
-    return await validHttpRequestOf("get", type, url, header, null, handler, onError);
-}
-
-/**
- * Method used to send http requests from within this tamper monkey script
- * 
- * @template T
- * @param {string}                                                                  method - method request type either being GET, POST, PATCH, or DELETE
- * @param {"arraybuffer" | "blob" | "json" | "stream" | "text" | undefined}           type - type of data to be returned from the response
- * @param {string}                                                                     url - url target for the request
- * @param {{[key: string]: string} | undefined}                                    header - extra headers (auth is added automatically!)
- * @param {string | Blob | File | Object | Array<any> | FormData | URLSearchParams | undefined}   data - request body for PATCH/POST
- * @param {Func<Object, T>}                                                        handler - Function that handles the response data and turns it into the required data
- * @param {Func<string|number, T>}                                                 onError - Function to handle errors of either caused by the handling of the response or from the request call
- * @returns {Promise<T>}
- */
-async function validHttpRequestOf(method, type, url, header, data, handler, onError) {
-    return await httpRequestOf(method, type, url, generalStatusCodeRange, header, data, handler, onError);
-}
-
-/**
- * Method used to send http requests from within this tamper monkey script
- * 
- * @template T
- * @param {string}                                                                  method - method request type either being GET, POST, PATCH, or DELETE
- * @param {"arraybuffer" | "blob" | "json" | "stream" | "text" | undefined}           type - type of data to be returned from the response
- * @param {string}                                                                     url - url target for the request
- * @param {Predicate<number>}                                              allowedStatuses - test function used to check if the status is allowed or is an error
- * @param {{[key: string]: string} | undefined}                                    header - extra headers (auth is added automatically!)
- * @param {string | Blob | File | Object | Array<any> | FormData | URLSearchParams | undefined} data - request body for PATCH/POST
- * @param {Func<Object, T>}                                                        handler - Function that handles the response data and turns it into the required data
- * @param {Func<string|number, T>}                                                 onError - Function to handle errors of either caused by the handling of the response or from the request call
- * @returns {Promise<T>}
- */
-async function httpRequestOf(method, type, url, allowedStatuses, header, data, handler, onError) {
-    app.debug(`[${method}, ${type}]: ${url}`);
-    if (!url) return onError("Invalid URL given as its null");
-    return await new Promise((resolve, reject) => {
-        GM_xmlhttpRequest({
-            method: method, url: url, responseType: type, headers: { ...(header ?? {}) }, data: data,
-            onload: function(response) {
-                var result;
-                if (allowedStatuses(response.status)) {
-                    try {
-                        result = handler(response)
-                    } catch (error) {
-                        result = onError(error.message)
-                    }
-                } else {
-                    result = onError(response.status)
-                }
-
-                resolve(result);
-            },
-            onerror: function(error) {
-                resolve(onError(error.message))
-            }
-        });
-    });
-}
