@@ -182,18 +182,6 @@ class CachedSetting extends Observerable {
     async #setupValue(rawValue, defaultValue, decoder) {
         this.value = (rawValue != null) ? await decoder(rawValue) : defaultValue;
     }
-
-    /**
-     * @template T
-     * @param {() => Promise<T>} getCallback
-     * @param {((value: T) => T)?} setCallback
-     * @param {Consumer<Consumer<T>>} externalSourceUpdate
-     * @returns {Promise<CachedObserverable<T>>}
-     */
-    static async of(getCallback, setCallback, externalSourceUpdate) {
-        const entry = await getCallback();
-        return new CachedObserverable(() => entry, setCallback, externalSourceUpdate);
-    }
 }
 
 // #endregion
@@ -207,8 +195,8 @@ const monkey = {
      * @param {{[key: string]: string;} | undefined}                                    header - extra headers (auth is added automatically!)
      * @returns {Promise<Blob | undefined>}
      */
-    getBlobFrom(url, header) {
-        return this.getDataFrom(url, "blob", header);
+    getBlobFrom(url, headers, onError) {
+        return this.getDataFrom(url, "blob", headers, (data) => data.response, onError);
     },
     /**
      * Method used to send http requests from within this tamper monkey script
@@ -217,8 +205,8 @@ const monkey = {
      * @param {{[key: string]: string} | undefined}                                    header - extra headers (auth is added automatically!)
      * @returns {Promise<ArrayBuffer | undefined>}
      */
-    getArrayBuffer(url, header) {
-        return this.getDataFrom(url, "arraybuffer", header);
+    getArrayBuffer(url, headers, onError) {
+        return this.getDataFrom(url, "arraybuffer", headers, (data) => data.response, onError);
     },
     /**
      * Method used to send http requests from within this tamper monkey script
@@ -231,8 +219,8 @@ const monkey = {
      * @param {((type: string, url: string, error: string|number|Object) => T) | undefined}  onError - Function to handle errors of either caused by the handling of the response or from the request call
      * @returns {Promise<T>}
      */
-    getDataFrom(url, type, header, handler = (data) => data.response, onError) {
-        return this.requestFrom(url, {method: "get", type: type, header: header, handler: handler, onError: (onError ?? this.onGetResponseError)});
+    getDataFrom(url, type, headers, handler = (data) => data.response, onError) {
+        return this.requestFrom(url, {method: "get", type: type, headers: headers, handler: handler, onError: (onError ?? this.onGetResponseError)});
     },
     /**
      * @template T
@@ -240,7 +228,7 @@ const monkey = {
      * @property {string}                                                                                 method - method request type either being GET, POST, PATCH, or DELETE
      * @property {"arraybuffer" | "blob" | "json" | "stream" | "text" | undefined}                        type - type of data to be returned from the response
      * @property {(number) => boolean}                                                                    allowedStatuses - test function used to check if the status is allowed or is an error
-     * @property {{[key: string]: string} | undefined}                                                    header - extra headers (auth is added automatically!)
+     * @property {{[key: string]: string} | undefined}                                                    headers - extra headers (auth is added automatically!)
      * @property {string | Blob | File | Object | Array<any> | FormData | URLSearchpropertys | undefined} data - request body for PATCH/POST
      * @property {(Object) => T}                                                                          handler - Function that handles the response data and turns it into the required data
      * @property {(type: string, url: string, error: string|number|Object) => T}                          onError - Function to handle errors of either caused by the handling of the response or from the request call

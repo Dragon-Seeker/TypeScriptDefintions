@@ -355,15 +355,15 @@ function dirOrNull(node) {
  * @returns {Promise<RootTreeNode<ZipTreeNode>>}
  */
 async function generateZipTree(zipBlob) {
-  /** @type {Array<TreeNode>} */
-  const entries = [];
-  /** @type {RootTreeNode<ZipTreeNode>} */
-  const root = {
-    type: "root",
-    children: {},
-    entries: entries,
-  };
-  return await readZipDataToNode(root, zipBlob, (node) => entries.push(node));
+    /** @type {Array<TreeNode>} */
+    const entries = [];
+    /** @type {RootTreeNode<ZipTreeNode>} */
+    const root = {
+        type: "root",
+        children: {},
+        entries: entries,
+    };
+    return await readZipDataToNode(root, zipBlob, (node) => entries.push(node));
 }
 
 /**
