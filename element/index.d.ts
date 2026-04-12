@@ -16,6 +16,8 @@ interface Elements {
     modal(title: string|Element, consumer: (elements: {dialog: HTMLDialogElement, parent: HTMLDivElement, title: HTMLHeadingElement, closeBtn: HTMLButtonElement}) => void): Promise<HTMLDialogElement>;
 }
 
+var Elements: Elements;
+
 interface Element {
     /**
      * Method used to add a child element with custom CSS within javascript land
