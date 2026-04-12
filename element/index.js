@@ -76,7 +76,7 @@ const Elements = {};
  * @return {string|undefined} 
  */
 function getTagName(type) {
-    return htmlElementToTagNameMap[type] ?? htmlElementToTagNames[type][0]
+    return htmlElementToTagNameMap.get(type) ?? htmlElementToTagNames.get(type)[0]
 }
 
 /**
