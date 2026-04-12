@@ -40,39 +40,6 @@ class TreeNode {
 }
 
 /**
- * Root tree node — extends TreeNode with a flat entries list.
- * @implements {ZipTreeNode}
- */
-class RootZipTreeNode extends ZipTreeNode {
-    /** @type(Map<string, ZipTreeNode>) */
-    entries = new Map();
-
-    /**
-     * @param {string} name
-     * @param {string} path
-     */
-    constructor() {
-        super(null, null, "", "", null, "root", null);
-    }
-
-    /**
-     * @param {ZipTreeNode} node 
-     */
-    addNodeToTree(node) {
-        this.entries.set(node.path, node)
-        return node;
-    }
-
-    /**
-     * @param {ZipTreeNode} node 
-     */
-    removeNodeFromTree(node) {
-        this.entries.set(node.path, node)
-        return node;
-    }
-}
-
-/**
  * Zip tree node — extends TreeNode with blob accessor and metadata.
  * @extends {TreeNode<ZipTreeNode>}
  * @implements {ZipTreeNode}
@@ -126,6 +93,40 @@ class ZipTreeNode extends TreeNode {
         return node;
     };
 }
+
+/**
+ * Root tree node — extends TreeNode with a flat entries list.
+ * @implements {ZipTreeNode}
+ */
+class RootZipTreeNode extends ZipTreeNode {
+    /** @type(Map<string, ZipTreeNode>) */
+    entries = new Map();
+
+    /**
+     * @param {string} name
+     * @param {string} path
+     */
+    constructor() {
+        super(null, null, "", "", null, "root", null);
+    }
+
+    /**
+     * @param {ZipTreeNode} node 
+     */
+    addNodeToTree(node) {
+        this.entries.set(node.path, node)
+        return node;
+    }
+
+    /**
+     * @param {ZipTreeNode} node 
+     */
+    removeNodeFromTree(node) {
+        this.entries.set(node.path, node)
+        return node;
+    }
+}
+
 
 //#endregion
 
