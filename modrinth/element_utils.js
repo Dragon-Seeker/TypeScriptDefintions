@@ -119,4 +119,3 @@ function createWithStyles(storage) {
     }
     return storage;
 }
-

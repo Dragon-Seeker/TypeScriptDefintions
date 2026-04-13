@@ -431,8 +431,9 @@ const app = {
      * Send debug message to conolse and modrinth app
      * @param {string} title - 
      * @param {string|object} text 
+     * @param {Error?} err - 
      */
-    debug(title, msg) { this.infomUser(MessageType.DEBUG, title, msg); },
+    debug(title, msg, err) { this.infomUser(MessageType.DEBUG, title, msg, err); },
     /** 
      * Send info message to conolse and modrinth app 
      * @param {string} title - 
@@ -449,31 +450,36 @@ const app = {
      * Send warn message to conolse and modrinth app
      * @param {string} title - 
      * @param {string|object} text 
+     * @param {Error?} err - 
      */
-    warn(title, msg) { this.infomUser(MessageType.WARN, title, msg); },
+    warn(title, msg, err) { this.infomUser(MessageType.WARN, title, msg, err); },
     /**
      * Send error message to conolse and modrinth app
      * @param {string} title - 
      * @param {string|object} text - 
+     * @param {Error?} err - 
      */
-    error(title, msg) { this.infomUser(MessageType.ERROR, title, msg); },
+    error(title, msg, err) { this.infomUser(MessageType.ERROR, title, msg); },
     /**
      * Used to send message to the browsers console and possibly to the modrinth notification system
      * @param {MessageType|string} type - Type of message being one of the 5 possible types i.e. DEBUG, INFO, SUCCESS, WARN, ERROR
      * @param {string} title - 
      * @param {string|object} text - 
+     * @param {Error?} err - 
      */
-    infomUser(type, title, msg) {
+    infomUser(type, title, msg, err) {
         if (type instanceof String) type = MessageType[type];
         const logMsg = [`[${title}]:`, msg];
+        if (err != null) logMsg.push(err);
+
         if (type.name == "error") {
-            console.error(logMsg);
+            console.error(...logMsg);
         } else if (type.name == "warn") {
-            console.warn(logMsg);
+            console.warn(...logMsg);
         } else if (type.name == "debug") {
-            console.debug(logMsg);
+            console.debug(...logMsg);
         } else {
-            console.log(logMsg);
+            console.log(...logMsg);
         }
 
         if (type == MessageType.DEBUG && !this.showDebugToast()) return;
