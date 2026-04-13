@@ -46,7 +46,7 @@ class ZipTreeNode extends TreeNode {
     remove() {
         this.children.delete(this.name);
 
-        this.root.removeNodeFromTree(segmentObject)
+        this.root.removeNodeFromTree(this)
     };
 
     /**
@@ -56,10 +56,12 @@ class ZipTreeNode extends TreeNode {
      * @param {ZipJS.EntryMetaData?} metadata 
      */
     add(name, blob = null, type = null, metadata = null) {
+        /** @type(RootZipTreeNode) */
+        const root = this.root ?? this;
         this.children.get(name)?.remove();
-        const node = new ZipTreeNode(this.root, this, name, this.path + "/" + name, blob, type, metadata);
+        const node = new ZipTreeNode(root, this, name, this.path + "/" + name, blob, type, metadata);
         this.children.set(name, node);
-        this.root.addNodeToTree(node);
+        root.addNodeToTree(node);
         return node;
     };
 }
@@ -166,15 +168,15 @@ async function readZipDataToNode(rootNode, baseNode, zipBlob) {
         for (const [index, segment] of segments.entries()) {
             path = path.length == 0 ? segment : `${path}/${segment}`;
 
-            var segmentObject = currentLevel.children[segment];
+            var segmentNode = currentLevel.children.get(segment);
 
-            if (!segmentObject) {
+            if (!segmentNode) {
                 // Check if it's a file (last segment and not marked as a directory)
                 const isFile = (index === segments.length - 1) && !entry.directory;
 
-                segmentObject = currentLevel.add(segment, 
+                segmentNode = currentLevel.add(segment, 
                     (entry.filename == path) ? async () => {
-                        const buffer = await fileOrNull(segmentObject)?.arrayBuffer()
+                        const buffer = await fileOrNull(segmentNode)?.arrayBuffer()
                         return buffer != null ? new Blob(buffer) : null;
                     } : null, 
                     isFile ? (/\.(ear|war|jar|zip|mrpack)$/.test(path) ? "zip" : "file") : "directory",
@@ -183,10 +185,10 @@ async function readZipDataToNode(rootNode, baseNode, zipBlob) {
             }
 
             // Move pointer deeper into the tree if it's a directory
-            if (segmentObject.type === 'directory') {
-                currentLevel = segmentObject;
-            } else if(segmentObject.type === 'zip' && !segmentObject.metadata.encrypted) {
-                await readZipDataToNode(rootNode, segmentObject, new Blob([await fileOrNull(segmentObject)?.arrayBuffer()]), addCallback);
+            if (segmentNode.type === 'directory') {
+                currentLevel = segmentNode;
+            } else if(segmentNode.type === 'zip' && !segmentNode.metadata.encrypted) {
+                await readZipDataToNode(rootNode, segmentNode, new Blob([await fileOrNull(segmentNode)?.arrayBuffer()]));
             }
         }
     }

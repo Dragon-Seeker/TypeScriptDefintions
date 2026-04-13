@@ -452,7 +452,7 @@ Elements.modal = async function (title, consumer) {
         const target = event.target;
         if (overlay.contains(target) && overlay != target) return;
         overlay.close();
-        for (const callback of overlay.onCloseModalCallbacks) callback(element);
+        for (const callback of overlay.onCloseModalCallbacks) callback(overlay);
     });
 
     const container = overlay.div()
