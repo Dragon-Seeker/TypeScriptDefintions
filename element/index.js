@@ -130,7 +130,7 @@ HTMLElement.prototype.setStyle = function (style) {
  * @return {this} 
  */
 HTMLElement.prototype.modifyStyle = function (style) {
-    if (style.style != null) Object.defineProperties(this.style, style.style);
+    if (style.style != null) Object.assign(this.style, style.style);
     if (style.className != null) this.className = style.className;
     if (style.classList != null) this.classList.add(style.classList);
 
