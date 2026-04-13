@@ -67,7 +67,6 @@ const htmlElementToTagNames = new Map([
     [HTMLHeadingElement, ["h1","h2","h3","h4","h5","h6"]]
 ]);
 /** @import {} from '../misc/index' */
-/** @import {Elements} from './index.d.ts' */
 
 /** @type(Elements) */
 const Elements = {};

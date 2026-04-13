@@ -12,10 +12,8 @@ interface ToggleStyler {
     onChangeStyler: (value: boolean, btn: HTMLButtonElement, span: HTMLSpanElement) => void;
 }
 
-declare global {
 interface Elements {
     modal(title: string|Element, consumer: (dialog: HTMLDialogElement, parent: HTMLDivElement, title: HTMLHeadingElement, closeBtn: HTMLButtonElement) => Promise<void>): Promise<HTMLDialogElement>;
-}
 }
 
 var Elements: Elements;
