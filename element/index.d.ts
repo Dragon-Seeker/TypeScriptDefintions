@@ -22,8 +22,10 @@ interface Element {
     /**
      * Method used to add a child element with custom CSS within javascript land
      */
+    // TODO: MAY COLLIDE WITH ADD FOR HTML SELECTION
     add<T>(type: { new (): T }, tagName: string?): T;
     modify(modifier: Consumer<this>): this;
+    clearElements(): this;
     
     themed(themeId: ThemeId, consumer: Consumer<this>): this;
 

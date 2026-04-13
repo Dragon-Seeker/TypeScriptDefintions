@@ -98,6 +98,11 @@ Element.prototype.add = function (type, tagName) {
     return element;
 }
 
+Element.prototype.clearElements = function () {
+    this.innerHTML = "";
+    return this;
+}
+
 /**
  * @this HTMLElement
  * @param {StyleHandler} style
