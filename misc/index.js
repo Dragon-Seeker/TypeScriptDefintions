@@ -120,6 +120,14 @@ class TreeNode {
         this.name = name;
         this.path = path;
     }
+
+    /**
+     * @param {((a: N, b: N) => number) | undefined} compare 
+     */
+    sort(compare) {
+        this.children = new Map(Array.from(this.children.entries()).sort((entry1, entry2) => compare(entry1[1], entry2[1])));
+        for (const value of this.children.values()) value.sort(compare)
+    }
 }
 
 function sleep(ms) {
