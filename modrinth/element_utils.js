@@ -31,7 +31,7 @@ function createWithStyles(storage) {
     }
     storage.styleAppliers["bordered_flex"] = {
         style: {
-            ...storage.styleAppliers["rounded_background"],
+            ...storage.styleAppliers["rounded_background"].style,
             display: 'flex',
             flexDirection: 'column',
             boxShadow: '0 4px 10px rgba(0,0,0,0.5)',

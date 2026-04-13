@@ -108,7 +108,7 @@ Element.prototype.add = function (type, tagName) {
     /*** @type(T) */ 
     const element = document.createElement(elementTag);
     this.append(element);
-    return this;
+    return element;
 }
 
 /**
@@ -156,7 +156,7 @@ HTMLElement.prototype.modifyStyle = function (style) {
 }
 
 HTMLElement.prototype.with = function (handler) {
-    for (const [objKey, objValue] of handler) {
+    for (const [objKey, objValue] of Object.entries(handler)) {
         if (objKey == "attr") continue;
         this[objKey] = objValue;
     }
@@ -168,21 +168,20 @@ HTMLElement.prototype.with = function (handler) {
     return this;
 }
 
-
 /**
  * @this HTMLElement
  * @param {ThemeID} themeId
  * @param {Consumer<this>} consumer
  * @return {this} 
  */
-Element.prototype.themed = (themeId, consumer) => {
+Element.prototype.themed = function (themeId, consumer) {
     ThemeStorage.push(themeId);
     consumer(this);
     ThemeStorage.pop(themeId);
     return this;
 }
 
-Element.prototype.modify = (modifier) => {
+Element.prototype.modify = function (modifier) {
     modifier(this);
     return this;
 }
@@ -192,7 +191,7 @@ Element.prototype.div = function () {
 }
 
 Element.prototype.btn = function (name, color, onPress) {
-    const btn = this.add(HTMLDivElement).addStyle({ 
+    const btn = this.add(HTMLButtonElement).addStyle({ 
         styleId: "button",
         style: { background: `${color}`, } 
     });
@@ -238,7 +237,7 @@ Element.prototype.selection = function (options, defaultOption, entryHandler) {
     /** @type(ElementObservable<HTMLSelectElement, T>) */
     const observable = new ElementObservable(selection, () => baseSelection);
 
-    select.onchange = () => {
+    selection.onchange = () => {
         baseSelection = selection.options[selection.selectedIndex].innerValue
 
         observable.set(baseSelection);
@@ -354,6 +353,8 @@ Element.prototype.collapsible = function (tooltip, state, consumer) {
             /** @type(HTMLDivElement) */
             var collapsible = null;
 
+            var value = state.get();
+
             /**
              * @param {boolean} value
              * @param {HTMLButtonElement} btn
@@ -365,24 +366,18 @@ Element.prototype.collapsible = function (tooltip, state, consumer) {
                     btn.classList.remove("active")
                 }
 
-                if (collapsible.style.display === "flex") {
-                    collapsible.style.display = "none";
-                } else {
+                if (value) {
                     collapsible.style.display = "flex";
+                } else {
+                    collapsible.style.display = "none";
                 }
             }
-
-            const value = state.get();
     
             const btn = holder.btn("...", "F3E4C9", (btn) => {
-                    value = !value;
-                    onPress(value, btn)
-                    state.set(value);
+                    onPress(state.set(value = !value), btn);
                 })
                 .with({title: tooltip ?? ""})
                 .addStyle({style: { padding: "0px" }});
-
-            onPress(value, btn);
 
             collapsible = holder.div().setStyle({
                 style: {
@@ -393,6 +388,8 @@ Element.prototype.collapsible = function (tooltip, state, consumer) {
                 },
                 className: "collapsible-content"
             }).modify(consumer);
+
+            onPress(value, btn);
         });
 }
 
@@ -448,7 +445,7 @@ Elements.modal = async function (title, consumer) {
             className: "special-theme"
         }); 
         
-    overlay.onclose(() => overlay.style.display = "");
+    overlay.onClose(() => overlay.style.display = "");
     
     // Optional: Close dialog when clicking outside of it (on the backdrop)
     overlay.addEventListener('click', (event) => {
@@ -484,9 +481,8 @@ Elements.modal = async function (title, consumer) {
     return overlay; 
 }
 
-Element.prototype.detail = (title, titleClassName) => {
-    /** @type(HTMLElement) */ const element = this;
-    return element.add(HTMLDetailsElement)
+Element.prototype.detail = function(title, titleClassName) {
+    return this.add(HTMLDetailsElement)
         .modify((details) => {
             const summary = details.add(HTMLElement, "summary")
                 .setStyle({style: { width: "fit-content" }});
@@ -499,9 +495,8 @@ Element.prototype.detail = (title, titleClassName) => {
         });
 }
 
-Element.prototype.input = (type, placeholder, defaultValue) => {
-    /** @type(HTMLElement) */ const element = this;
-    return element.add(HTMLInputElement)
+Element.prototype.input = function(type, placeholder, defaultValue) {
+    return this.add(HTMLInputElement)
         .with({
             type: type,
             placeholder: placeholder,
@@ -509,9 +504,8 @@ Element.prototype.input = (type, placeholder, defaultValue) => {
         });
 }
 
-Element.prototype.editBox = (id, innerText, contentEditable) => {
-    /** @type(HTMLElement) */ const element = this;
-    const outerDiv = element.div(parent)
+Element.prototype.editBox = function (id, innerText, contentEditable) {
+    const outerDiv = this.div(parent)
         .setStyle({
             style: {
                 width: "100%",
@@ -620,9 +614,9 @@ class ThemeStorage {
                 const styleApplier = storage.styleAppliers[handler.styleId] ?? {};
 
                 Object.assign(element.style, {
-                    ...storage.baseStyle,
+                    ...(storage.baseStyle?.style ?? {}),
+                    ...(styleApplier.style ?? {}),
                     ...(handler.style ?? {}),
-                    ...(styleApplier.style ?? {})
                 });
 
                 if (handler.className != null || styleApplier.className != null) {
