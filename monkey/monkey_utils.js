@@ -127,11 +127,11 @@ class CachedSetting extends Observable {
  */
 
 const ErrorType = Object.freeze({
-    ERROR = "error",
-    ABORT = "abort",
-    TIMEOUT = "timeout",
-    INVALID_STATUS = "invalid_status",
-    HANDLER_ERROR = "handler_error"
+    ERROR: "error",
+    ABORT: "abort",
+    TIMEOUT: "timeout",
+    INVALID_STATUS: "invalid_status",
+    HANDLER_ERROR: "handler_error"
 })
 
 const monkey = {
