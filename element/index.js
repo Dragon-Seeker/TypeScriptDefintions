@@ -304,7 +304,7 @@ function updateSelections(select, options, defaultOption, entryHandler) {
                 value: data[1]
             });
 
-        if (data[0] == defaultOption && defaultOptionEl != null) {
+        if (data[0] == defaultOption && defaultOptionEl == null) {
             defaultOptionEl = el;
             el.selected = true;
         }
