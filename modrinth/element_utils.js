@@ -11,7 +11,6 @@ function createWithStyles(storage) {
             borderRadius: '4px',
             border: 'none',
             color: 'white',
-            cursor: 'pointer',
             width: '100%'
         }
     };
