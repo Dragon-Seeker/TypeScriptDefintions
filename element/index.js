@@ -214,18 +214,26 @@ Element.prototype.selection = function (options, defaultOption, entryHandler) {
         // TODO: ADD ABILITY TO HANDLE WHEN UPDATED FROM THIS METHOD
         .updateSelections(options, defaultOption, entryHandler);
 
-    var baseSelection = getFromCollectionValidated(options, defaultOption);
-
+    var baseKey = defaultOption;
+    var baseValue = getFromCollectionValidated(options, defaultOption);
+    
     /** @type(ElementObservable<HTMLSelectElement, T>) */
-    const observable = new ElementObservable(selection, () => baseSelection);
+    const keyObservable = new Observable(() => baseKey);
+    const valueObservable = new Observable(() => baseValue);
+
 
     selection.onchange = () => {
-        baseSelection = selection.options[selection.selectedIndex].innerValue
+        const selectedElement = selection.options[selection.selectedIndex];
 
-        observable.set(baseSelection);
+        keyObservable.set(baseKey = selectedElement.innerText);
+        valueObservable.set(baseValue = selectedElement.innerValue);
     }
 
-    return observable;
+    return {
+        element: selection,
+        keyObservable: keyObservable,
+        valueObservable: valueObservable,
+    };
 }
 
 Element.prototype.dataListInput = function (id, placeholder, options, defaultValue, width) {
