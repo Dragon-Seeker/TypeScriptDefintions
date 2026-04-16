@@ -111,7 +111,7 @@ function createWithStyles(storage) {
             height: "50%",
             textWrap: "nowrap !important",
             tabSize: '4',
-            //background: '#444',
+            background: 'var(--color-button-bg)',
             minHeight: 0,
             marginBlockEnd: 0,
         }
