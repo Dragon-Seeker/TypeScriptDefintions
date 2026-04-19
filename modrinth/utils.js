@@ -495,19 +495,22 @@ const app = {
      */
     showDebugToast: () => false,
     /**
+     * @typedef  {Object} ModrinthRequestData
+     * @property      {string}           api - 'labrinth' → api.modrinth.com, 'archon' → archon.modrinth.com, or a full URL
+     * @property   {number|string}   version - revisionNumber (→ /v2/), 'internal' (→ /_internal/), or a string
+     * @property      {string}        method - method request type either being GET, POST, PATCH, or DELETE
+     * @property      {object}        params - query string params
+     * @property      {object}          body - request body for PATCH/POST
+     * @property      {object}       headers - extra headers (auth is added automatically!)
+     * @property     {boolean}      skipAuth - opt out of auto-auth useful for public endpoints
+     */
+    /**
      * Method used to send requests within modrinths API using applications client
      * 
-     * @param        {string}         api - 'labrinth' → api.modrinth.com, 'archon' → archon.modrinth.com, or a full URL
-     * @param {number|string}     version - revisionNumber (→ /v2/), 'internal' (→ /_internal/), or a string
-     * @param        {string}      method - method request type either being GET, POST, PATCH, or DELETE
-     * @param        {string}        path - path for the api request
-     * @param        {object}      params - query string params
-     * @param        {object}        body - request body for PATCH/POST
-     * @param        {object}     headers - extra headers (auth is added automatically!)
-     * @param       {boolean}    skipAuth - opt out of auto-auth useful for public endpoints
+     * @param {string} path - path for the api request
      * @returns {Promise<object|ModrinthApiError|Error>}
      */
-    request(api, version, method, path, params, body, headers, skipAuth) {
+    request(path, /** @type(ModrinthRequestData) */ {api = 'labrinth', version = 3, method = "GET", params, body, headers, skipAuth} = {}) {
         this.debug("Modrinth API Request", `Running ${api} Request ${method} v${version} at path ${path}`)
         try {
             return this.client().then(client => {
@@ -529,17 +532,6 @@ const app = {
         }
     },
     /**
-     * Method used to send requests within modrinths API using applications client
-     * 
-     * @param        {string}     path - path for the api request
-     * @param        {object}   params - query string params
-     * @param        {object}  headers - extra headers (auth is added automatically!)
-     * @param       {boolean} skipAuth - opt out of auto-auth useful for public endpoints
-     */
-    labrinthGetRequest(path, params, headers, skipAuth) {
-        return this.request('labrinth', 3, 'GET', path, params, null, headers, skipAuth)
-    },
-    /**
      * @param {string} url - Url of the given project on modrinth
      */
     projectIdFromURl(url) {
@@ -557,7 +549,7 @@ const app = {
      * @returns {Promise<ModrinthProject>}
      */
     async projectFor(id) {
-        return this.labrinthGetRequest(`/project/${id}`).then(obj => {
+        return this.request(`/project/${id}`).then(obj => {
             return validateModrinthResponse(obj, (msg) => {
                 this.error(`Project Info Getter`, msg)
                 return { id: id }
@@ -576,7 +568,7 @@ const app = {
      * @returns {Promise<ModrinthVersion>}
      */
     projectVersionFor(projectId, versionId) {
-        return this.labrinthGetRequest(`/project/${projectId}/version/${versionId}`).then(obj => {
+        return this.request(`/project/${projectId}/version/${versionId}`).then(obj => {
             return validateModrinthResponse(obj, (msg) => {
                 this.error(`Project Version Id Grabber`, msg)
                 return {
@@ -591,7 +583,7 @@ const app = {
      * @returns {Promise<ModrinthVersion[]>}
      */
     projectVersionsFor(projectId) {
-        return this.labrinthGetRequest(`/project/${projectId}/version`).then(obj => {
+        return this.request(`/project/${projectId}/version`).then(obj => {
             return validateModrinthResponse(obj, (msg) => {
                 this.error(`Id/Slug Grabber`, msg)
                 return [];
@@ -629,7 +621,7 @@ const app = {
      * @returns {Promise<ModrinthTeam>}
      */
     teamFor(teamId) {
-        return this.labrinthGetRequest(`/team/${teamId}/members`).then(obj => {
+        return this.request(`/team/${teamId}/members`).then(obj => {
             return {
                 teamID: teamId,
                 members: validateModrinthResponse(obj, () => {
@@ -644,7 +636,7 @@ const app = {
      * @returns {Promise<ModrinthOrganization>}
      */
     organizationFor(organizationId) {
-        return this.labrinthGetRequest(`/organization/${organizationId}`).then(obj => {
+        return this.request(`/organization/${organizationId}`).then(obj => {
             return validateModrinthResponse(obj, (msg) => {
                 this.error(`Team Member Info Getter`, msg)
                 return [];
@@ -656,7 +648,7 @@ const app = {
      * @returns {Promise<ModrinthUser>}
      */
     userFor(userID) {
-        return this.labrinthGetRequest(`/user/${userID}`).then(obj => {
+        return this.request(`/user/${userID}`).then(obj => {
             return validateModrinthResponse(obj, (msg) => {
                 this.error(`User Grabber`, msg)
                 return {};
