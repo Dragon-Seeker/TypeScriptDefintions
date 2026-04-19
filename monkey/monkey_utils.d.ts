@@ -68,10 +68,8 @@ declare class CachedSetting<T> extends Observable<T> {
     key: string;
     defaultValue: T;
     value: T;
-    #selfRef: this | Promise<this>;
 
     constructor (settings: Settings, key: string, defaultValue: T, decoder?: ((obj: object) => T), encoder?: ((value: T) => Promise<object>|object));
-    #setupValue(rawValue, defaultValue, decoder: ((obj: object) => T | Promise<T>) | undefined): this | Promise<this>;
 }
 
 declare interface Monkey {

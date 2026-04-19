@@ -85,7 +85,7 @@ const monkey = {
             GM_addValueChangeListener(key, (key, oldValue, newValue) => callback(key, oldValue, newValue));
         },
         of(key, defaultValue, decoder = (obj) => obj, encoder = (obj) => obj) {
-            return new CachedSetting(this, key, defaultValue, decoder, encoder).selfRef;
+            return CachedSetting.of(this, key, defaultValue, decoder, encoder)
         },
     }),
     /**
@@ -102,9 +102,9 @@ class CachedSetting extends Observable {
     value;
     /**
      * @private
-     * @type(this|Promise<this>)
+     * @type(Promise<T>|null)
      */
-    #selfRef;
+    valueSetLock;
 
     /**
      * @constructor
@@ -117,7 +117,7 @@ class CachedSetting extends Observable {
         super(() => this.value, async (value) => settings.set(key, await encoder(value)));
         this.key = key;
         this.defaultValue = defaultValue;
-        this.#selfRef = this.#setupValue(settings.get(key), defaultValue, decoder);
+        this.valueSetLock = this.#setupValue(settings.get(key), defaultValue, decoder);
         settings.onMutation(key, async (key, oldValue, newValue) => {
             this.value = await decoder(newValue);
             this.onChangeInvoker(this.value);
@@ -129,15 +129,23 @@ class CachedSetting extends Observable {
      */
     #setupValue(rawValue, defaultValue, decoder) {
         const result = (rawValue != null) ? decoder(rawValue) : defaultValue;
-        if (result.then === 'function') {
+        if (result.then != null) {
             return /**@type(Promise<T>)*/ Promise.resolve(result).then((value) => {
-                this.value = value;
-                return this;
+                return this.value = value;
             })
         } else {
             this.value = result;
-            return this;
         }
+        
+        return null;
+    }
+
+    static of(settings, key, defaultValue, decoder = (obj) => obj, encoder = (obj) => obj) {
+        const setting = new CachedSetting(settings, key, defaultValue, decoder, encoder);
+        if (setting.valueSetLock == null) return setting;
+        const lock = setting.valueSetLock;
+        setting.valueSetLock = null;
+        return lock.then((obj) => setting);
     }
 }
 
