@@ -122,72 +122,54 @@ class CachedSetting extends Observable {
 
 // #region Monkey Object Def
 
-/**
- * @import { } from './monkey_utils' 
- */
+/** @import { ErrorType, XMLResponseType, RequestErrorHandler, MonkeyRequestData } from './monkey_utils' */
+/** @import { generalStatusCodeRange } from '../misc/index' */
 
+/** @type { ErrorType } */
 const ErrorType = Object.freeze({
     ERROR: "error",
     ABORT: "abort",
     TIMEOUT: "timeout",
     INVALID_STATUS: "invalid_status",
-    HANDLER_ERROR: "handler_error"
+    HANDLER_ERROR: "handler_error",
 })
+
+/** @type {XMLResponseType} */
+const XMLResponseType = Object.freeze({
+    ARRAYBUFFER: "arraybuffer",
+    TEXT: "text",
+    JSON: "json",
+    BLOB: "blob" ,
+    STREAM: "stream",
+})
+
+/**
+ * 
+ */
 
 const monkey = {
     /**
      * Method used to send http requests from within this tamper monkey script
      * 
-     * @param {string}                                                       url - url target for the request
-     * @param {{[key: string]: string;} | undefined}                         headers - extra headers (auth is added automatically!)
-     * @param {((error: Object|Error, type: ErrorType) => T) | undefined}    onError - Function to handle errors of either caused by the handling of the response or from the request call
-     * @returns {Promise<Blob | undefined>}
-     */
-    getBlobFrom(url, headers, onError) {
-        return this.getDataFrom(url, "blob", headers, (data) => data.response, onError);
-    },
-    /**
-     * Method used to send http requests from within this tamper monkey script
-     * 
-     * @param {string}                                                       url - url target for the request
-     * @param {{[key: string]: string} | undefined}                          headers - extra headers (auth is added automatically!)
-     * @param {((error: Object|Error, type: ErrorType) => T) | undefined}    onError - Function to handle errors of either caused by the handling of the response or from the request call
-     * @returns {Promise<ArrayBuffer | undefined>}
-     */
-    getArrayBuffer(url, headers, onError) {
-        return this.getDataFrom(url, "arraybuffer", headers, (data) => data.response, onError);
-    },
-    /**
-     * Method used to send http requests from within this tamper monkey script
-     * 
      * @template T
-     * @param {"arraybuffer" | "blob" | "json" | "stream" | "text" | undefined} type - type of data to be returned from the response
-     * @param {string}                                                       url - url target for the request
-     * @param {{[key: string]: string} | undefined}                          header - extra headers (auth is added automatically!)
-     * @param {(Object) => T}                                                handler - Function that handles the response data and turns it into the required data
-     * @param {((error: Object|Error, type: ErrorType) => T) | undefined}    onError - Function to handle errors of either caused by the handling of the response or from the request call
+     * @param {DataType<T>?}            type - type of data to be returned from the response
+     * @param {string}                               url - url target for the request
+     * @param {{[key: string]: string} | undefined}  header - extra headers (auth is added automatically!)
+     * @param {((request: GMXMLRequest<T>) => T)?}      handler - Function that handles the response data and turns it into the required data
+     * @param {RequestErrorHandler<T>?}                 onError - Function to handle errors of either caused by the handling of the response or from the request call
      * @returns {Promise<T|undefined>}
      */
-    getDataFrom(url, type, headers, handler = (data) => data.response, onError) {
-        return this.requestFrom(url, {method: "get", type: type, headers: headers, handler: handler, onError: (onError ?? ((obj, errType) => {
-            const error = obj instanceof Error ? obj : undefined;
-            const msg = obj instanceof Error ? obj.message : JSON.stringify(obj, 2)
-            this.error(`Fetcher Error`, `Fetching ${type} data from '${url}' lead to the following '${errType}' error: ${msg}`, error)
-            console.error(obj);
-            return undefined;
-        }))});
+    getDataFrom(url, type, /** @type(BaseMonkeyRequestData<T>) */ {headers, handler, onError, allowedStatuses} = {}) {
+        return this.requestFrom(url, {method: "get", type, headers, allowedStatuses,
+            handler: handler ?? ((data) => data.response),
+            onError: (onError ?? ((obj, errType, thrownError) => {
+                const msg = thrownError != null ? thrownError.message : JSON.stringify(obj, 2)
+                this.error(`Fetcher Error`, `Fetching ${type} data from '${url}' lead to the following '${errType}' error: ${msg}`, thrownError)
+                console.error(obj);
+                return undefined;
+            }))
+        });
     },
-    /**
-     * @template T
-     * @typedef {Object} MonkeyRequestData
-     * @property {string}                                                                                 method - method request type either being GET, POST, PATCH, or DELETE
-     * @property {"arraybuffer" | "blob" | "json" | "stream" | "text" | undefined}                        type - type of data to be returned from the response
-     * @property {(number) => boolean}                                                                    allowedStatuses - test function used to check if the status is allowed or is an error
-     * @property {{[key: string]: string} | undefined}                                                    headers - extra headers (auth is added automatically!)
-     * @property {string | Blob | File | Object | Array<any> | FormData | URLSearchpropertys | undefined} data - request body for PATCH/POST
-     * @property {(Object) => T}                                                                          handler - Function that handles the response data and turns it into the required data
-     * @property {(error: Object|Error, type: ErrorType) => T}                          onError - Function to handle errors of either caused by the handling of the response or from the request call
-     */
     /**
      * Method used to send http requests from within a tamper monkey script using {@link GM_xmlhttpRequest}
      * 
@@ -197,9 +179,8 @@ const monkey = {
      * @param {string} url - url target for the request
      * @returns {Promise<T>}
      */
-    async requestFrom(url, /** @type(MonkeyRequestData<T>) */ {method = "get", type, allowedStatuses = generalStatusCodeRange, headers, data, handler, onError} = {}) {
-        this.debug("Request From Info", `[${method}, ${type}]: ${url}`);
-        if (!url) return onError("Invalid URL given as its null");
+    async requestFrom(url, /** @type(MonkeyRequestData<T>) */ {method = "get", type = XMLResponseType.TEXT, allowedStatuses = generalStatusCodeRange, headers, data, handler, onError} = {}) {
+        this.debug("Request From Info", `[${method}, ${type}]: ${url}`)
         return await new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: method, url: url, responseType: type, headers: { ...(headers ?? {}) }, data: data,
@@ -208,7 +189,7 @@ const monkey = {
                         try {
                             resolve(handler(response))
                         } catch (error) {
-                            resolve(onError(error, ErrorType.HANDLER_ERROR))
+                            resolve(onError(response, ErrorType.HANDLER_ERROR, error))
                         }
                     } else {
                         resolve(onError(response, ErrorType.INVALID_STATUS))
@@ -220,12 +201,8 @@ const monkey = {
             });
         });
     },
-    error: (title, message, error) => {
-        console.error(`${title}: ${message}`, error)
-    },
-    debug: (title, message, error) => {
-        console.debug(`${title}: ${message}`, error)
-    },
+    error: (title, message, error) => { console.error(`${title}: ${message}`, error) },
+    debug: (title, message, error) => { console.debug(`${title}: ${message}`, error) },
     settings: new Settings(),
     /**
      * Method used to add the given CSS to the document using {@link GM_addStyle}

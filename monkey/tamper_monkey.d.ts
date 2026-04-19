@@ -1,4 +1,5 @@
-type Collection<T> = {[key: string]: T} | Map<String, T> | T[];
+
+declare type Collection<T> = {[key: string]: T} | Map<String, T> | T[];
 
 /**
  * Tampermonkey API JSDoc Definitions
@@ -41,7 +42,7 @@ declare var GM_info: {
  * @param {Object} attributes - The attributes to set on the created element.
  * @returns {HTMLElement} The created element.
  */
-declare function GM_addElement(parent_node?: Node, tag_name: string, attributes: Object): HTMLElement;
+declare function GM_addElement(parent_node: Node, tag_name: string, attributes: Object): HTMLElement;
 
 /**
  * Adds the given CSS to the document.
@@ -205,13 +206,28 @@ declare function GM_addValueChangeListener(key: string, listener: (key: string, 
  * @param {number} listenerId - The ID of the listener to remove.
  */
 declare function GM_removeValueChangeListener(listenerId: number): void;
+declare interface GMXMLRequest<T> {
+    readyState: number, 
+    responseHeaders: string, 
+    response: T, 
+    responseText: string, 
+    responseType: string, 
+    responseXML: XMLDocument, 
+    status: number, 
+    statusText: string
+}
+
+declare class DataType<T> {
+    name: string;
+    constructor(name: string);
+}
 
 /**
  * Makes an XML HTTP request, bypassing cross-origin restrictions.
  * @param {Object} details - The request details.
  * @returns {Object} An object with an 'abort' method.
  */
-declare function GM_xmlhttpRequest(details: {
+declare function GM_xmlhttpRequest<T>(details: {
     method?: string;
     url: string;
     headers?: { [key: string]: string };
@@ -222,19 +238,19 @@ declare function GM_xmlhttpRequest(details: {
     revalidate?: boolean;
     timeout?: number;
     context?: any;
-    responseType?: 'arraybuffer' | 'blob' | 'json' | 'stream' | 'text';
+    responseType?: DataType<T> | string;
     overrideMimeType?: string;
     anonymous?: boolean;
     fetch?: boolean;
     user?: string;
     password?: string;
-    onabort?: (response: Object) => void;
-    onerror?: (response: Object) => void;
-    onloadstart?: (response: Object) => void;
-    onprogress?: (response: Object) => void;
-    onreadystatechange?: (response: Object) => void;
-    ontimeout?: (response: Object) => void;
-    onload?: (response: Object) => void;
+    onabort?: (response: GMXMLRequest<T>) => void;
+    onerror?: (response: GMXMLRequest<T>) => void;
+    onloadstart?: (response: GMXMLRequest<T>) => void;
+    onprogress?: (response: GMXMLRequest<T>) => void;
+    onreadystatechange?: (response: GMXMLRequest<T>) => void;
+    ontimeout?: (response: GMXMLRequest<T>) => void;
+    onload?: (response: GMXMLRequest<T>) => void;
 }): { abort: () => void };
 
 /**
