@@ -68,6 +68,15 @@ const htmlElementToTagNames = new Map([
 ]);
 /** @import {} from '../misc/index' */
 
+const baseStyleIds = {
+    button: "button",
+    selection: "selection",
+    dialog: "dialog",
+    dialog_container: "dialog_container",
+    dialog_header: "dialog_header",
+    edit_box_div: "edit_box_div",
+}
+
 /** @type(Elements) */
 const Elements = {};
 
@@ -105,23 +114,23 @@ Element.prototype.clearElements = function () {
 
 /**
  * @this HTMLElement
- * @param {StyleHandler} style
+ * @param {StyleHandler & {blackListStyleIds?: string[]}} style
  * @return {this} 
  */
-HTMLElement.prototype.addStyle = function (style) {
+HTMLElement.prototype.addStyle = function (style, withBase = true) {
+    if (!withBase) style.blackListStyleIds = "baseStyle";
     ThemeStorage.applyStyle(this, style);
     return this;
 }
 
 /**
+ * @deprecated
  * @this HTMLElement
- * @param {StyleHandler} style
+ * @param {StyleHandler & {blackListStyleIds?: string[]}} style
  * @return {this} 
  */
 HTMLElement.prototype.setStyle = function (style) {
-    style.append = false;
-    ThemeStorage.applyStyle(this, style);
-    return this;
+    return this.addStyle(style, false);
 }
 
 /**
@@ -174,7 +183,7 @@ Element.prototype.div = function () {
 
 Element.prototype.btn = function (name, color, onPress) {
     const btn = this.addTo(HTMLButtonElement).addStyle({ 
-        styleId: "button",
+        styleId: baseStyleIds.button,
         style: { background: `${color}`, } 
     });
 
@@ -212,7 +221,7 @@ class ElementObservable extends Observable {
  */
 Element.prototype.selection = function (options, defaultOption, entryHandler) {
     const selection = this.addTo(HTMLSelectElement)
-        .addStyle({ styleId: "selection" })
+        .addStyle({ styleId: baseStyleIds.selection })
         // TODO: ADD ABILITY TO HANDLE WHEN UPDATED FROM THIS METHOD
         .updateSelections(options, defaultOption, entryHandler);
 
@@ -347,14 +356,14 @@ function updateSelections(select, options, defaultOption, entryHandler) {
 Element.prototype.collapsible = function (tooltip, state, consumer) {
     return this
         .div()
-        .setStyle({
+        .addStyle({
             style: {
                 width: "100%",
                 gap: "10px",
                 display: "flex",
                 flexDirection: "column"
-            }
-        })
+            },
+        }, false)
         .modify((holder) => {
             /** @type(HTMLDivElement) */
             var collapsible = null;
@@ -385,7 +394,7 @@ Element.prototype.collapsible = function (tooltip, state, consumer) {
                 .with({title: tooltip ?? ""})
                 .addStyle({style: { padding: "0px" }});
 
-            collapsible = holder.div().setStyle({
+            collapsible = holder.div().addStyle({
                 style: {
                     flexDirection: "column",
                     padding: "0px",
@@ -393,7 +402,7 @@ Element.prototype.collapsible = function (tooltip, state, consumer) {
                     width: "100%"
                 },
                 className: "collapsible-content"
-            }).modify(consumer);
+            }, false).modify(consumer);
 
             onPress(value, btn);
         });
@@ -406,11 +415,11 @@ Element.prototype.toggleBtn = function (id, value, onToggle, /** @type(ToggleSty
     const baseStyles = styler?.initialStyles(state);
     const button = this.addTo(HTMLButtonElement)
         .with({id: id, type: 'button', attr: {role: 'switch', 'aria-checked': state}})
-        .setStyle(baseStyles?.btnStyle ?? null);
+        .addStyle(baseStyles?.btnStyle ?? null, false);
 
 
     const knob = button.addTo(HTMLSpanElement)
-        .setStyle(baseStyles?.spanStyle ?? null);
+        .addStyle(baseStyles?.spanStyle ?? null, false);
 
     button.addEventListener('click', () => {
         const value = !state;
@@ -456,7 +465,7 @@ Elements.modal = async function (title, consumer) {
     // 1. Create the Overlay (Background)
     const overlay = document.body.addTo(HTMLDialogElement)
         .addStyle({
-            styleId: "dialog",
+            styleId: baseStyleIds.dialog,
             className: "special-theme"
         }); 
         
@@ -473,15 +482,15 @@ Elements.modal = async function (title, consumer) {
     const container = overlay.div()
         .with({id: "modal-container"})
         .addStyle({
-            styleId: "dialog_container",
+            styleId: baseStyleIds.dialog_container,
             style: { width: "" }
         });
 
     const header = container.div(container)
-        .setStyle({styleId: "dialog_header"});
+        .addStyle({styleId: baseStyleIds.dialog_header}, false);
 
     const titleElement = header.header(2, title)
-        .setStyle({style: { margin: '0 0 0 0' }});
+        .addStyle({style: { margin: '0 0 0 0' }}, false);
 
     const btn = header.btn("", "", () => {
             overlay.close();
@@ -503,11 +512,11 @@ Element.prototype.detail = function(title, titleClassName) {
     return this.addTo(HTMLDetailsElement)
         .modify((details) => {
             const summary = details.addTo(HTMLElement, "summary")
-                .setStyle({style: { width: "fit-content" }});
+                .addStyle({style: { width: "fit-content" }}, false);
 
             const titleElement = summary.addTo(HTMLSpanElement);
 
-            if (titleClassName != null) titleElement.setStyle({className: titleClassName})
+            if (titleClassName != null) titleElement.addStyle({className: titleClassName}, false)
 
             titleElement.append(title);
         });
@@ -524,19 +533,19 @@ Element.prototype.input = function(type, placeholder, defaultValue) {
 
 Element.prototype.editBox = function (id, innerText, contentEditable) {
     const outerDiv = this.div(parent)
-        .setStyle({
+        .addStyle({
             style: {
                 width: "100%",
                 height: "50%",
                 overflow: "scroll"
-            }
-        }).with({
+            },
+        }, false).with({
             id: id,
             className: 'cm-editor ͼ1 ͼ2 ͼ4'
         });
 
     const innerBox = outerDiv.div()
-        .addStyle({styleId: "edit_box_div"})
+        .addStyle({styleId: baseStyleIds.edit_box_div})
         .with({
             id: `${id}-contents`,
             className: 'cm-content',
@@ -570,6 +579,7 @@ class ThemeStorage {
     static onCreationCallbacks = [];
 
     identifier;
+    /** @type {{[key: StyleId]: StyleData & { styleIds: StyleID[]}}} */
     styleAppliers = {};
     baseStyle;
     toggleStyler;
@@ -626,38 +636,41 @@ class ThemeStorage {
     /**
      * @template {HTMLElement} T
      * @param {T} element 
-     * @param {StyleHandler} handler 
+     * @param {StyleHandler & {blackListStyleIds?: string[]}} handler 
      */
     static applyStyle(element, handler = {}) {
         const storage = (handler.themeId != null) ? ThemeStorage.get(handler.themeId) : ThemeStorage.peek();
-        if (storage != null) {
-            /** @type {StyleData} */
-            const styleApplier = storage.styleAppliers[handler.styleId] ?? {};
+        if (storage == null) return;
 
-            if (handler.append ?? true) {
-                Object.assign(element.style, {
-                    ...(storage.baseStyle?.style ?? {}),
-                    ...(styleApplier.style ?? {}),
-                    ...(handler.style ?? {}),
-                });
+        const styles = [
+            ((handler.blackListStyleIds ?? []).includes("baseStyle") ? null : storage.baseStyle) ?? {},
+            ...(storage.resolveStyles(handler.blackListStyleIds ?? [], handler).reverse()),
+        ];
 
-                if (handler.className != null || styleApplier.className != null) {
-                    element.className = `${handler.className} ${styleApplier.className}`;
-                }
-                if (handler.classList != null) element.classList.add(handler.classList);
-                if (styleApplier.classList != null) element.classList.add(styleApplier.classList != null)
-            } else {
-                Object.assign(element.style, {
-                    ...(styleApplier.style ?? {}),
-                    ...(handler.style ?? {}),
-                });
+        styles.forEach((style) => {
+            if (style.style) Object.assign(element.style, style.style);
+        })
 
-                if (handler.className != null || styleApplier.className != null) {
-                    element.className = `${handler.className} ${styleApplier.className}`;
-                }
-                if (handler.classList != null) element.classList.add(handler.classList);
-                if (styleApplier.classList != null) element.classList.add(styleApplier.classList != null)
-            }   
+        element.className = [handler.className, ...styles.map(style => style.className)].filter(Boolean).join(" ");
+        [handler.classList, ...styles.map(style => style.classNaclassListme)].filter(Boolean).forEach(list => element.classList.add(list));
+    }
+
+    /**
+     * @param {string[]} blackListStyleIds
+     * @param {StyleData & { styleIds?: StyleID[], styleId?: StyleID }} styleData 
+     * @param {StyleData[]} [styles=[]] 
+     * @returns {StyleData[]}
+     */
+    resolveStyles(blackListStyleIds, styleData, styles = []) {
+        styles.push(styleData);
+        for (const styleId of [styleData.styleId ?? "", ...(styleData.styleIds ?? [])]) {
+            if (blackListStyleIds.includes(styleId)) continue;
+
+            /** @type {StyleData & { styleIds: StyleID[]}} */
+            const style = this.styleAppliers[styleId]
+
+            if (style) this.resolveStyles(blackListStyleIds, style, styles)
         }
+        return styles;
     }
 }

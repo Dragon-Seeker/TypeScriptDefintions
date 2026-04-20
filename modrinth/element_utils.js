@@ -1,6 +1,14 @@
 /**
  * @import {} from '../element/index'
  */
+
+const styles = {
+    ...baseStyleIds,
+    button: "button",
+    bordered_flex: "bordered_flex",
+    rounded_background: "rounded_background",
+}
+
 /**
  * @param {ThemeStorage} storage
  */
@@ -14,12 +22,12 @@ function createWithStyles(storage) {
             width: '100%'
         }
     };
-    storage.styleAppliers["button"] = {
+    storage.styleAppliers[styles.button] = {
         style: {
             fontWeight: 'bold'
         }
     }
-    storage.styleAppliers["rounded_background"] = {
+    storage.styleAppliers[styles.rounded_background] = {
         style: {
             gap: '10px',
             alignItems: 'center',
@@ -28,16 +36,16 @@ function createWithStyles(storage) {
             borderRadius: '8px',
         }
     }
-    storage.styleAppliers["bordered_flex"] = {
+    storage.styleAppliers[styles.bordered_flex] = {
+        styleIds: [ styles.rounded_background ],
         style: {
-            ...storage.styleAppliers["rounded_background"].style,
             display: 'flex',
             flexDirection: 'column',
             boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
             border: '1px solid #444',
         }
     }
-    storage.styleAppliers["selection"] = {
+    storage.styleAppliers[styles.selection] = {
         style: {
             background: '#444',
             outline: 'none'
@@ -68,7 +76,7 @@ function createWithStyles(storage) {
             }
         }
     }
-    storage.styleAppliers["dialog"] = {
+    storage.styleAppliers[styles.dialog] = {
         style: {
             backgroundColor: "rgba(0,0,0,0)",
             border: '0',
@@ -81,9 +89,9 @@ function createWithStyles(storage) {
             height: '100%'
         }
     }
-    storage.styleAppliers["dialog_container"] = {
+    storage.styleAppliers[styles.dialog_container] = {
+        styleIds: [ styles.bordered_flex ],
         style: {
-            ...storage.styleAppliers["bordered_flex"].style,
             padding: '24px',
             borderRadius: '12px',
             border: "0",
@@ -96,7 +104,7 @@ function createWithStyles(storage) {
             overflow: 'hidden',
         }
     }
-    storage.styleAppliers["dialog_header"] = {
+    storage.styleAppliers[styles.dialog_header] = {
         style: {
             display: "flex",
             justifyContent: "space-between",
@@ -105,7 +113,7 @@ function createWithStyles(storage) {
             width: "100%"
         }
     }
-    storage.styleAppliers["edit_box_div"] = {
+    storage.styleAppliers[styles.edit_box_div] = {
         style: {
             width: "100%",
             height: "50%",

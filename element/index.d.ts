@@ -64,7 +64,6 @@ type StyleHandler = {
     themeId?: ThemeId,
     styleId?: StyleId,
     style?: CSSStyleDeclaration,
-    append?: boolean,
 }
 
 type ElementHandler = { id?: ElementId, name?: string, title?: string, attr?: {[qualifiedName: string]: string} };
@@ -73,7 +72,8 @@ type ElementId = string;
 
 // TODO: WORK OUT SOME WAY TO HOLD LIKE A STYLIZED BUILDER OBJECT TYPE THING WHERE YOU GIVEN IT A STYLE KEY TO THEN HAVE CERTAIN THEME STYLES APPLY FOR STUFF
 interface HTMLElement {
-    addStyle(style?: StyleHandler): this;
+    addStyle(style?: StyleHandler, withBase?: boolean): this;
+    /** @deprecated */
     setStyle(style?: StyleHandler): this;
     modifyStyle(style: StyleHandler): this;
     with(handler: ElementHandler & this): this;
@@ -98,7 +98,7 @@ declare class ThemeStorage {
     
     baseStyle?: StyleData;
     toggleStyler?: ToggleStyler;
-    styleAppliers: {[key: StyleId]: StyleData};
+    styleAppliers: {[key: StyleId]: StyleData & { styleIds: StyleID[]}};
 
     constructor(id: ThemeId, styleSheetSupplier?: (string | string[]));
 
@@ -110,6 +110,8 @@ declare class ThemeStorage {
     static applyStyle<T extends HTMLElement>(element: T, handler?: StyleHandler): T;
 
     static onCreationCallback(callback: (storage: ThemeStorage) => void): void;
+
+    resolveStyles(styleData: StyleData & { styleIds?: StyleID[], styleId?: StyleID }, styles: StyleData[] = []): StyleData[];
 }
 
 /**
