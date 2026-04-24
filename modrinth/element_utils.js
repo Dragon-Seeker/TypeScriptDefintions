@@ -124,5 +124,20 @@ function createWithStyles(storage) {
             marginBlockEnd: 0,
         }
     }
+    storage.styleAppliers[styles.row] = {
+        style: {
+            gap: "5px",
+            display: "flex",
+            width: "100%"
+        }
+    }
+    storage.styleAppliers[styles.column] = {
+        style: {
+            gap: "10px",
+            display: "flex",
+            flexDirection: "column",
+            width: "100%"
+        }
+    }
     return storage;
 }

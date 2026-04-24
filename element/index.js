@@ -75,9 +75,11 @@ const baseStyleIds = {
     dialog_container: "dialog_container",
     dialog_header: "dialog_header",
     edit_box_div: "edit_box_div",
+    row: "row",
+    column: "column",
 }
 
-/** @type(Elements) */
+/** @type(ElementsStaticConstructors) */
 const Elements = {};
 
 /**
@@ -107,9 +109,31 @@ Element.prototype.addTo = function (type, tagName) {
     return element;
 }
 
+Element.prototype.mergeAs = function (typeRef, data) {
+    Object.assign(this, data)
+    return this;
+}
+
 Element.prototype.clearElements = function () {
     this.innerHTML = "";
     return this;
+}
+
+HTMLElement.prototype.displayIf = function (/** @type {Observable<boolean>} */ value) {
+    var prevDisplay = null;
+    const setDisplay = (value) => {
+        if (value) {
+            if (prevDisplay != "none") {
+                this.style.display = prevDisplay
+                prevDisplay = "none"
+            }
+        } else if (prevDisplay == "none") {
+            prevDisplay = this.style.display ?? ""
+            this.style.display = "none"
+        }
+    }
+    value.onChange(setDisplay);
+    setDisplay(value.get())
 }
 
 /**
@@ -177,8 +201,22 @@ Element.prototype.modify = function (modifier) {
     return this;
 }
 
-Element.prototype.div = function () {
-    return this.addTo(HTMLDivElement);
+Element.prototype.div = function (refData) {
+    const element = this.addTo(HTMLDivElement);
+
+    return (refData != null) ? element.mergeAs(refData.typeRef, refData.objectData) : element;
+}
+
+Element.prototype.column = function (refData) {
+    const element = this.addTo(HTMLDivElement).addStyle({styleId: baseStyleIds.column});
+
+    return (refData != null) ? element.mergeAs(refData.typeRef, refData.objectData) : element;
+}
+
+Element.prototype.row = function (refData) {
+    const element = this.addTo(HTMLDivElement).addStyle({styleId: baseStyleIds.row});
+
+    return (refData != null) ? element.mergeAs(refData.typeRef, refData.objectData) : element;
 }
 
 Element.prototype.btn = function (name, color, onPress) {
@@ -188,7 +226,9 @@ Element.prototype.btn = function (name, color, onPress) {
     });
 
     btn.innerHTML = name;
-    btn.onclick = (obj, event) => onPress(btn, event);
+    btn.onmousedown = (event) => {
+        if (event.button == 0 || event.button == 1) onPress(btn, event);
+    }
 
     return btn;
 }
@@ -448,64 +488,96 @@ Element.prototype.header = function (type, text) {
         .with({textContent: text})
 }
 
-HTMLDialogElement.prototype.openModal = function () {
-    this.showModal();
-    for (const callback of this.onOpenModalCallbacks) callback(this);
+Elements.dialog = function () {
+    const dialog = document.body.addTo(HTMLDialogElement);
+    const baseShowModal = dialog.showModal.bind(dialog);
+    return dialog.mergeAs(null, /** @type {HTMLExtendedDialogElement} */ ({
+        showModal() {
+            baseShowModal()
+            for (const callback of this.onOpenModalCallbacks) callback(this);
+        },
+        openModal() {
+            this.showModal();
+        },
+        onOpen(callback) {
+            (this.onOpenModalCallbacks ??= []).push(callback)
+        },
+        onClose(callback) {
+            (this.onCloseModalCallbacks ??= []).push(callback)
+        }
+    }))
 }
 
-HTMLDialogElement.prototype.onOpen = function (callback) {
-    (this.onOpenModalCallbacks ??= []).push(callback)
+Elements.modalAs = function (title, func) {
+    var value = null;
+    
+    const result = Elements.modal(title, (modal, container, topbar) => value = func(modal, container, topbar));
+
+    if (result.then != null) {
+        return /**@type {Promise<void>}*/ Promise.resolve(result).then(() => {
+            return value;
+        })
+    } else {
+        return value; 
+    }
 }
 
-HTMLDialogElement.prototype.onClose = function (callback) {
-    (this.onCloseModalCallbacks ??= []).push(callback)
-}
-
-Elements.modal = async function (title, consumer) {
+Elements.modal = function (title, consumer) {
     // 1. Create the Overlay (Background)
-    const overlay = document.body.addTo(HTMLDialogElement)
+    const dialog = Elements.dialog()
         .addStyle({
             styleId: baseStyleIds.dialog,
             className: "special-theme"
         }); 
         
-    overlay.onClose(() => overlay.style.display = "");
+    dialog.onClose(() => dialog.style.display = "");
     
     // Optional: Close dialog when clicking outside of it (on the backdrop)
-    overlay.addEventListener('click', (event) => {
+    dialog.addEventListener('click', (event) => {
         const target = event.target;
-        if (overlay.contains(target) && overlay != target) return;
-        overlay.close();
-        for (const callback of overlay.onCloseModalCallbacks) callback(overlay);
+        if (dialog.contains(target) && dialog != target) return;
+        dialog.close();
+        for (const callback of dialog.onCloseModalCallbacks) callback(dialog);
     });
-
-    const container = overlay.div()
-        .with({id: "modal-container"})
+    
+    const container = dialog.div().with({id: "modal-container"})
         .addStyle({
             styleId: baseStyleIds.dialog_container,
             style: { width: "" }
         });
 
-    const header = container.div(container)
+    const topBar = container.div()
         .addStyle({styleId: baseStyleIds.dialog_header}, false);
 
-    const titleElement = header.header(2, title)
+    const titleElement = topBar.header(2, title)
         .addStyle({style: { margin: '0 0 0 0' }}, false);
 
-    const btn = header.btn("", "", () => {
-            overlay.close();
-            for (const callback of overlay.onCloseModalCallbacks) callback(overlay);
+    const btn = topBar.btn("", "", () => {
+            dialog.close();
+            for (const callback of dialog.onCloseModalCallbacks) callback(dialog);
         })
         .with({id: "closeBtn", innerHTML: "&times;", attr: {"aria-label": "Close dialog"}})
         .addStyle({style: {width: ""}});
 
-    overlay.onOpen((element) => {
+    dialog.onOpen((element) => {
         element.style.display = "flex"
     })
 
-    await consumer(overlay, container, titleElement, btn);
+    const result = consumer(dialog, 
+        container, 
+        topBar.mergeAs(null, /** @type {HTMLModalTopBar} */ ({
+            titleElement: titleElement,
+            closeBtnElement: btn,
+        }))
+    );
 
-    return overlay; 
+    if (result.then != null) {
+        return /**@type {Promise<void>}*/ Promise.resolve(result).then((value) => {
+            return dialog;
+        })
+    } else {
+        return dialog; 
+    }
 }
 
 Element.prototype.detail = function(title, titleClassName) {

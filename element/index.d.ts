@@ -12,23 +12,39 @@ interface ToggleStyler {
     onChangeStyler: (value: boolean, btn: HTMLButtonElement, span: HTMLSpanElement) => void;
 }
 
-interface Elements {
-    modal(title: string|Element, consumer: (dialog: HTMLDialogElement, parent: HTMLDivElement, title: HTMLHeadingElement, closeBtn: HTMLButtonElement) => Promise<void>): Promise<HTMLDialogElement>;
+interface ElementsStaticConstructors {
+    modal(title: string|Element, consumer: (dialog: HTMLExtendedDialogElement, parent: HTMLDivElement, topBar: HTMLModalTopBar) => Promise<void>): Promise<HTMLExtendedDialogElement>;
+    modal(title: string|Element, consumer: (dialog: HTMLExtendedDialogElement, parent: HTMLDivElement, topBar: HTMLModalTopBar) => void): HTMLExtendedDialogElement;
+    modalAs<T>(title: string|Element, func: (dialog: HTMLExtendedDialogElement, parent: HTMLDivElement, topBar: HTMLModalTopBar) => Promise<T>): Promise<T>;
+    modalAs<T>(title: string|Element, func: (dialog: HTMLExtendedDialogElement, parent: HTMLDivElement, topBar: HTMLModalTopBar) => T): T;
+    dialog(): HTMLExtendedDialogElement;
 }
 
-declare var Elements: Elements;
+interface HTMLModalTopBar extends HTMLDivElement {
+    titleElement: HTMLHeadingElement,
+    closeBtnElement: HTMLButtonElement
+}
+
+declare var Elements: ElementsStaticConstructors;
+
+type TypeRef<T> = () => T | { new (): T };
 
 interface Element {
     /**
      * Method used to add a child element with custom CSS within javascript land
      */
     addTo<T>(type: { new (): T }, tagName?: string): T;
+
     modify(modifier: Consumer<this>): this;
     clearElements(): this;
+    mergeAs<T extends this>(typeRef: TypeRef<T>, objectData: T): T;
     
     themed(themeId: ThemeId, consumer: Consumer<this>): this;
 
-    div(): HTMLDivElement;
+    div<T extends HTMLDivElement>(refData?: {typeRef: TypeRef<T>, objectData: T}): T;
+    column<T extends HTMLDivElement>(refData?: {typeRef: TypeRef<T>, objectData: T}): T;
+    row<T extends HTMLDivElement>(refData?: {typeRef: TypeRef<T>, objectData: T}): T;
+
     header(type: string|number, text: string): HTMLHeadingElement;
     collapsible(tooltip: string, state: Observable<boolean>, consumer: (parent: HTMLDivElement) => void): HTMLDivElement;
 
@@ -72,6 +88,7 @@ type ElementId = string;
 
 // TODO: WORK OUT SOME WAY TO HOLD LIKE A STYLIZED BUILDER OBJECT TYPE THING WHERE YOU GIVEN IT A STYLE KEY TO THEN HAVE CERTAIN THEME STYLES APPLY FOR STUFF
 interface HTMLElement {
+    displayAs(observable: Observable<boolean>);
     addStyle(style?: StyleHandler, withBase?: boolean): this;
     /** @deprecated */
     setStyle(style?: StyleHandler): this;
@@ -133,23 +150,18 @@ interface HTMLDataListElement {
     updateSelections<T>(options: Collection<T>, handler?: EntryHandler): this;
 }
 
-interface HTMLDialogElement {
+interface HTMLExtendedDialogElement extends HTMLDialogElement {
     /**
      * The showModal() method of the {@link HTMLDialogElement} interface displays the dialog as a modal dialog, over the top of any other dialogs or elements that might be visible.
      * 
-     * @private
-     * @deprecated Please use {@link openModal()} instead such calls this one with custom code for handling display or other style stuff when opening the dialog
-     */
-    showModal(): void;
-    /**
-     * The showModal() method of the {@link HTMLDialogElement} interface displays the dialog as a modal dialog, over the top of any other dialogs or elements that might be visible.
+     * @deprecated
      */
     openModal(): void;
 
     
-    /** @private */ onOpenModalCallbacks: Array<(element: HTMLDialogElement) => void>;
-    /** @private */ onCloseModalCallbacks: Array<(element: HTMLDialogElement) => void>;
+    /** @private */ onOpenModalCallbacks: Array<(element: HTMLExtendedDialogElement) => void>;
+    /** @private */ onCloseModalCallbacks: Array<(element: HTMLExtendedDialogElement) => void>;
 
-    onOpen(callback: (element: HTMLDialogElement) => void): void;
-    onClose(callback: (element: HTMLDialogElement) => void): void;
+    onOpen(callback: (element: HTMLExtendedDialogElement) => void): void;
+    onClose(callback: (element: HTMLExtendedDialogElement) => void): void;
 }
