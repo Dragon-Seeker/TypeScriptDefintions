@@ -142,7 +142,7 @@ HTMLElement.prototype.displayIf = function (/** @type {Observable<boolean>} */ v
  * @return {this} 
  */
 HTMLElement.prototype.addStyle = function (style, withBase = true) {
-    if (!withBase) style.blackListStyleIds = "baseStyle";
+    if (!withBase) (style.blackListStyleIds ??= []).push("baseStyle");
     ThemeStorage.applyStyle(this, style);
     return this;
 }
@@ -208,13 +208,13 @@ Element.prototype.div = function (refData) {
 }
 
 Element.prototype.column = function (refData) {
-    const element = this.addTo(HTMLDivElement).addStyle({styleId: baseStyleIds.column});
+    const element = this.addTo(HTMLDivElement).addStyle({styleId: baseStyleIds.column}, false);
 
     return (refData != null) ? element.mergeAs(refData.typeRef, refData.objectData) : element;
 }
 
 Element.prototype.row = function (refData) {
-    const element = this.addTo(HTMLDivElement).addStyle({styleId: baseStyleIds.row});
+    const element = this.addTo(HTMLDivElement).addStyle({styleId: baseStyleIds.row}, false);
 
     return (refData != null) ? element.mergeAs(refData.typeRef, refData.objectData) : element;
 }

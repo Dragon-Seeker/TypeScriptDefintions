@@ -10,16 +10,15 @@ class StateManager {
     currentRoute = null;
     project = () => null;
 
-    async projectId() { 
+    projectId() { 
         const project = this.project();
 
         return project != null ? project.id : null;
     }
 
     async getProjectFor(projectId) {
-        if (this.project != null && this.project.id == projectId) return this.project;
-        const project = await app.projectFor(projectId);
-        if (this.url.includes("technical-review")) this.project = project
+        var project = this.project();
+        if (project == null || project.id != projectId) project = await app.projectFor(projectId);
         return project;
     }
 
