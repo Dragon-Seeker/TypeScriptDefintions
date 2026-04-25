@@ -357,7 +357,8 @@ declare interface AppWrapper {
     client(): Promise<ModrinthClient>;
     router(): Promise<RouterWrapper>;
     queryClient(): Promise<QueryClientWrapper>;
-    waitForQuery(filters: QueryFilters): Promise<CacheQuery | undefined>;
+    waitForAnyQuery(...filters: QueryFilters[]): Promise<CacheQuery | undefined>;
+    waitForAllQuery(...filters: QueryFilters[]): Promise<(CacheQuery | undefined)[]>;
     /** Send debug message to conolse and modrinth app */
     debug(title: string, msg : string|object, err?: Error): void,
     /**  Send info message to conolse and modrinth app  */

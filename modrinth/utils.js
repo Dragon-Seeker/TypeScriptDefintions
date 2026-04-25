@@ -59,7 +59,8 @@ class StateManager {
                     if (id != null) {
                         // TODO: POSSIBLE SAVE THE VALUE AND INVALIDATE WHEN THE VALUE IS CHANGED
                         const queryClient = await app.queryClient();
-                        this.project = () => queryClient.getQueryData(["project", "v3", id]);
+                        const cache = await app.waitForAnyQuery({queryKey: ["project", "v3", id]}, {queryKey: ["project", id]})
+                        this.project = () => queryClient.getQueryData(["project", "v3", id]) || queryClient.getQueryData(["project", id]);
                     } else {
                         this.project = () => null;
                     }
@@ -76,6 +77,7 @@ class StateManager {
         router.afterEach((to, from) => {
             this.prevRoute = this.currentRoute;
             this.currentRoute = to;
+            onRouteChange();
         });
 
         this.currentRoute = router.currentRoute.value;
@@ -159,28 +161,57 @@ const app = {
     async client() { return (await this.getAppProviders()).modrinthClient },
     async router() { return (await this.getNuxt()).$router },
     async queryClient() { return (await this.getContext()).provides.VUE_QUERY_CLIENT },
-    waitForQuery(filters) {
-        return new Promise(async (resolve) => {
-            const cache = (await this.queryClient()).getQueryCache();
+    waitForAnyQuery(...filters) { return this._waitForQuery(filters, "any"); },
+    waitForAllQuery(...filters) { return this._waitForQuery(filters, "all"); },
+    _waitForQuery(/** @type {Array<QueryFilters>} */ filters, /** @type {"any" | "all"} */ operation) {
+        /** @type {Array<() => void>} */
+        const unsubscribeCallbacks = [];
+        
+        return (operation == "any" ? Promise.any.bind(Promise) : Promise.all.bind(Promise))(filters.map((filter) => {
+            return new Promise(async (resolve) => {
+                const cache = (await this.queryClient()).getQueryCache();
 
-            const existingQuery = cache.find(filters);
-            
-            if (existingQuery && existingQuery.state.status === 'success' && !existingQuery.state.isFetching) {
-                resolve(existingQuery.state.data);
-            } else {
-                const unsubscribe = cache.subscribe((event) => {
-                    if (event.type === 'added' || event.type === 'updated') {
-                        const query = event.query;
-                        if (query.queryKey == filters.queryKey) {
-                            if (query.state.status === 'success' && !query.state.isFetching) {
-                                unsubscribe();
-                                resolve(query.state.data);
-                            }
+                const existingQuery = cache.find(filter);
+                
+                if (existingQuery && existingQuery.state.status === 'success' && !existingQuery.state.isFetching) {
+                    resolve(existingQuery.state.data);
+                } else {
+                    function arraysEqual(a, b) {
+                        if (a === b) return true;
+                        if (a == null || b == null || a.length !== b.length) return false;
+
+                        for (var i = 0; i < a.length; ++i) {
+                            if (a[i] !== b[i]) return false;
                         }
+
+                        return true;
                     }
-                });
-            }
-        });
+
+                    const unsubscribe = cache.subscribe((event) => {
+                        try {
+                            if (event.type === 'added' || event.type === 'updated') {
+                                const query = event.query;
+
+                                if (arraysEqual(query.queryKey, filter.queryKey)) {
+                                    if (query.state.status === 'success' && !query.state.isFetching) {
+                                        unsubscribeCallbacks.splice(index, 1)[0]()
+                                        resolve(query.state.data);
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            app.debug("Query Error", "An error has occured when trying to get data from cache!", err)
+                        }
+                    });
+
+                    const index = unsubscribeCallbacks.push(unsubscribe) - 1;
+                }
+            });
+        })).then((result) => {
+            for (const callback of unsubscribeCallbacks) callback();
+
+            return result;
+        })
     },
     debug(title, msg, err) { this.infomUser(MessageType.DEBUG, title, msg, err); },
     info(title, msg) { this.infomUser(MessageType.INFO, title, msg); },
