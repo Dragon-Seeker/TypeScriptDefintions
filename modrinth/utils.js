@@ -90,9 +90,11 @@ class StateManager {
 
         router.beforeEach((to, from, next) => {
             if (to.fullPath != from.fullPath) {
-                timeoutId = setTimeout(async () => {
-                    setRouteChange(to, from)
-                }, 0)
+                if (timeoutId == null) {
+                    timeoutId = setTimeout(async () => {
+                        setRouteChange(to, from)
+                    }, 10)
+                }
             }
 
             next()
