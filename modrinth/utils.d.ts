@@ -347,6 +347,12 @@ interface QueryClientWrapper {
 
     /** Removes queries entirely from the cache. */
     removeQueries(filters?: QueryFilters): void;
+
+    fetchQuery<TData = any>(options: { 
+        queryKey: QueryKey, 
+        queryFn: () => Promise<TData>,
+        staleTime?: number 
+    }): Promise<TData>;
 }
 
 declare interface AppWrapper {
@@ -390,13 +396,16 @@ declare interface AppWrapper {
     projectFromUrl(url: string): Promise<ModrinthProject>;
     projectFor(id: Slug|Identifier): Promise<ModrinthProject>;
     projectIdFor(id: Slug|Identifier): Promise<Identifier>;
+    projectExists(id: Slug|Identifier): Promise<boolean>;
     projectVersionFor(projectId: Slug|Identifier, versionId: Version|Identifier): Promise<ModrinthVersion>;
     projectVersionsFor(projectId: Slug|Identifier): Promise<ModrinthVersion[]>;
     primaryFileUrlsFor(projectId: Slug|Identifier): Promise<String[]>;
     keyedPrimaryFileUrlsFor(projectId: Slug|Identifier): Promise<Map<string, string>>;
-    teamFor(teamId: Identifier): Promise<ModrinthTeam>;
-    organizationFor(organizationId: Identifier):Promise<ModrinthOrganization>;
+    teamFor(teamTarget: Identifier | ModrinthProject | ModrinthUser): Promise<ModrinthTeam>;
+    organizationFor(organizationTarget: Identifier | ModrinthProject| ModrinthUser): Promise<ModrinthOrganization>;
     userFor(userID: Identifier): Promise<ModrinthUser>
+    threadFor(threadTarget: Identifier | ModrinthProject): Promise<{messages: Array<{body: {type: string}, verdict: string}>}>
+    projectsFromOwner(ownerTarget: ModrinthUser | ModrinthOrganization | string): Array<ModrinthProject>
     state: StateManager
 }
 

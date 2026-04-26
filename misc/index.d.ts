@@ -7,17 +7,19 @@ declare class Observable<T> {
     get(): T;
     set(value: T): void;
 
+    ifNotNull(func: (value: T) => void): void;
+
     static of<T>(startingValue: T): Observable<T>;
 
     static and(...observables: Observable<boolean>[]): Observable<boolean>;
     static or(...observables: Observable<boolean>[]): Observable<boolean>;
 
-    constructor (getter: () => T, setter: (value: T) => T, runChangeCallbackOnSet?: boolean);
+    constructor (getter: () => T, setter?: (value: T) => T, runChangeCallbackOnSet?: boolean);
 
     onChange(callback: OnChangeCallback<T>): this;
 }
 
-declare const fallThoughEndec: Endec<any>;
+declare const fallThoughEndec: Endec<any, any>;
 
 declare interface Settings {
     get<T>(key: string): T;
@@ -27,10 +29,16 @@ declare interface Settings {
     of<T>(key: string, defaultValue: T, endec?: AsyncEndec<T, any>): Promise<Setting<T>>;
 }
 
-declare abstract class Setting<T> extends Observable<T> {
+declare class KeyedObservable<T> extends Observable<T> {
     get key(): string;
+
+    constructor (key: string, getter: (key: string) => T, setter?: (value: T) => T, runChangeCallbackOnSet?: boolean);
+}
+
+declare class Setting<T> extends KeyedObservable<T> {
+
     get defaultValue(): T;
-    get endec(): Endec<T>;
+    get endec(): Endec<T, any>;
 
     constructor (settings: Settings, key: string, defaultValue: T, endec?: Endec<T, any>|AsyncEndec<T, any>);
 
@@ -44,13 +52,13 @@ declare class Endec<T, B> {
     encode(value: T ): B;
 }
 
-declare class AsyncEndec<T> {
-    constructor (decode: (value: any) => Promise<T>, encode: (value: T) => Promise<any>);
-    decode(value: any): Promise<T>;
-    encode(value: T ): Promise<object>;
+declare class AsyncEndec<T, B> {
+    constructor (decode: (value: B) => Promise<T>, encode: (value: T) => Promise<B>);
+    decode(value: B): Promise<T>;
+    encode(value: T ): Promise<B>;
 }
 
-class TreeNode<N extends TreeNode<N>> {
+declare class TreeNode<N extends TreeNode<N>> {
     parent: TreeNode<N> | null;
     children: Map<string, N>;
     name: string;
@@ -61,14 +69,14 @@ class TreeNode<N extends TreeNode<N>> {
     sort(compare: ((a: N, b: N) => number) | undefined): this;
 }
 
-function getFromCollectionValidated<T>(obj: Collection<T>, key, defaultKey): T;
+declare function getFromCollectionValidated<T>(obj: Collection<T>, key, defaultKey): T;
 
-function getFromCollection<T>(obj: Collection<T>, key: string): T;
+declare function getFromCollection<T>(obj: Collection<T>, key: string): T;
 
-function validateKeyWithCollection<T>(obj: Collection<T>, key, defaultKey): T;
+declare function validateKeyWithCollection<T>(obj: Collection<T>, key, defaultKey): T;
 
-function isGeneralAllowedStatusCode(status: number): boolean;
+declare function isGeneralAllowedStatusCode(status: number): boolean;
 
-function sleep(ms: number): Promise<void>;
+declare function sleep(ms: number): Promise<void>;
 
-function waitForElementValue(selector: string, getter: (element: Element) => Element, interval?: number): Promise<Element>;
+declare function waitForElementValue(selector: string, getter: (element: Element) => Element, interval?: number): Promise<Element>;

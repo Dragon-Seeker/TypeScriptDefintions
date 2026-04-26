@@ -1,7 +1,9 @@
 /** @type {SettingsElementsUtils} */
 const settingsElements = {
-    mergeAs(element, oncloseHook) {
+    mergeAs(element, oncloseHook, ) {
         const addToBase = element.addTo.bind(element);
+        const rowBase = element.row.bind(element);
+        const columnBase = element.column.bind(element)
         return element.mergeAs(null, /** @type {SettingsElementMaker & Element} */ ({
             oncloseHook: oncloseHook,
             textBox(name, setting, options) {
@@ -24,7 +26,10 @@ const settingsElements = {
 
                     setting.onChange((value) => box.setValue(endec.decode(value)))
 
-                }, options ?? {showDefaultValue: false})
+                }, {
+                    ...(options ?? {showDefaultValue: false}),
+                    attemptFlexWrapping: false
+                })
             },
             input(name, setting, options) {
                 return this.base(name, setting, (parent) => {
@@ -144,12 +149,34 @@ const settingsElements = {
 
                 return element;
             },
-            group({name, headerType, direction}, builder){
-                if (name != null) this.header(headerType, name);
+            row(header, builder) {
+                if (header instanceof Function && !(builder instanceof Function)) {
+                    return this.group("row", null, header)
+                } else {
+                    return this.group("row", header, builder)
+                }
+            },
+            column(header, builder) {
+                if (header instanceof Function && !(builder instanceof Function)) {
+                    return this.group("column", null, header)
+                } else {
+                    return this.group("column", header, builder)
+                }
+            },
+            group(direction, header, builder){
+                if (header != null) {
+                    this.header(header.headerType, header.name).modifyStyle(header.styleData ?? { style: { margin: "1rem 0 0.25rem 0" }});
+                }
 
-                builder(settingsElements.mergeAs(direction == "column" ? this.column() : this.row(), this.oncloseHook));
+                const element = settingsElements.mergeAs(direction == "row" ? rowBase() : columnBase(), this.oncloseHook);
 
-                return this;
+                if (builder != null) {
+                    builder(element);
+
+                    return this;
+                } else {
+                    return element;
+                }
             }
         }))
     }

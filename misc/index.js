@@ -51,12 +51,24 @@ class Observable {
             callback(value)
         }
     }
+
+    ifNotNull(func) {
+        const value = this.get();
+        if (value == null) return;
+        func(value);
+    }
 }
 
 const _fallThoughEndec = { decode: (value) => value, encode: (value) => value, }
 
-class Setting extends Observable {
-    key;
+class KeyedObservable extends Observable {
+    constructor (key, getCallback, setCallback, runChangeCallbackOnSet) {
+        super(() => getCallback(this.key), setCallback, runChangeCallbackOnSet);
+        this.key = key;
+    }
+}
+
+class Setting extends KeyedObservable {
     defaultValue;
     endec;
 
@@ -67,13 +79,12 @@ class Setting extends Observable {
     valueSetLock;
 
     constructor (settings, key, defaultValue, endec = _fallThoughEndec) {
-        super(() => this.value, async (value) => settings.set(key, await (endec.encode(value))), false);
-        this.key = key;
+        super(key, (key) => this.value, async (value) => settings.set(key, await (endec.encode(value))), false);
         this.defaultValue = defaultValue;
         this.endec = endec;
         this.valueSetLock = this.#setupValue(settings, defaultValue);
         settings.onMutation(key, async (key, oldValue, newValue) => {
-            onChangeInvoker(this.value = await (endec.decode(newValue)));
+            this.onChangeInvoker(this.value = await (endec.decode(newValue)));
         })
     }
 

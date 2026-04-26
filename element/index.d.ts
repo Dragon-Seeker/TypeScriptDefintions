@@ -41,9 +41,9 @@ interface Element {
     
     themed(themeId: ThemeId, consumer: Consumer<this>): this;
 
-    div<T extends HTMLDivElement>(refData?: {typeRef: TypeRef<T>, objectData: T}): T;
-    column<T extends HTMLDivElement>(refData?: {typeRef: TypeRef<T>, objectData: T}): T;
-    row<T extends HTMLDivElement>(refData?: {typeRef: TypeRef<T>, objectData: T}): T;
+    div(): HTMLDivElement;
+    column(): HTMLDivElement;
+    row(): HTMLDivElement;
 
     header(type: string|number, text: string): HTMLHeadingElement;
     collapsible(tooltip: string, state: Observable<boolean>, consumer: (parent: HTMLDivElement) => void): HTMLDivElement;

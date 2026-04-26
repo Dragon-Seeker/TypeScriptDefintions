@@ -11,7 +11,7 @@ declare interface TextBoxOptions<T> {
     endec: Endec<T, string>;
 }
 
-declare interface SettingsElementMaker {
+declare interface SettingsElementMaker extends Element {
     dependentSetting?: Setting<boolean>;
     oncloseHook: (callback: () => void) => void;
 
@@ -29,8 +29,12 @@ declare interface SettingsElementMaker {
     labeledOption(name: string, controlBuilder: (wrapper: HTMLDivElement, label: HTMLLabelElement) => void): this;
 
     dependentOn(setting: Setting<boolean>, buildFunc: (maker: this) => void): this;
+    
+    row(header: {name?: string, headerType?: string | number, styleData: StyleData}, builder: (groupHolder: HTMLDivElement & SettingsElementMaker) => void): this;
+    column(header: {name?: string, headerType?: string | number, styleData: StyleData}, builder: (groupHolder: HTMLDivElement & SettingsElementMaker) => void): this;
 
-    group({header, direction}: {header: {name?: string, headerType?: string | number, styleData: StyleData}, direction?: "row" | "column"}, builder: (groupHolder: HTMLDivElement & SettingsElementMaker) => void): this;
+    row(builder: (groupHolder: HTMLDivElement & SettingsElementMaker) => void): this;
+    column(builder: (groupHolder: HTMLDivElement & SettingsElementMaker) => void): this;
 }
 
 interface SettingsElementsUtils {
