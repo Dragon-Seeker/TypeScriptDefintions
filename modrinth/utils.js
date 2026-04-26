@@ -141,7 +141,6 @@ function getVersionKey(version) {
  * @param {(error: string) => object} onError 
  */
 function validateModrinthResponse(response, onError) {
-    console.log(response)
     if (response.name === "ModrinthApiError" || response.name === "ModrinthServerError") {
         return onError(response);
     } else if(response.error) {
