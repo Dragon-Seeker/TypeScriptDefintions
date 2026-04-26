@@ -237,12 +237,12 @@ const app = {
             return result;
         })
     },
-    debug(title, msg, err) { this.infomUser(MessageType.DEBUG, title, msg, err); },
+    debug(title, msg, err, silence) { this.infomUser(MessageType.DEBUG, title, msg, err); },
     info(title, msg) { this.infomUser(MessageType.INFO, title, msg); },
     success(title, msg) { this.infomUser(MessageType.SUCCESS, title, msg); },
-    warn(title, msg, err) { this.infomUser(MessageType.WARN, title, msg, err); },
-    error(title, msg, err) { this.infomUser(MessageType.ERROR, title, msg); },
-    infomUser(type, title, msg, err) {
+    warn(title, msg, err, silence) { this.infomUser(MessageType.WARN, title, msg, err, silence); },
+    error(title, msg, err, silence) { this.infomUser(MessageType.ERROR, title, msg, err, silence); },
+    infomUser(type, title, msg, err, silence) {
         if (type instanceof String) type = MessageType[type];
         const logMsg = [`[${title}]:`, msg];
         if (err != null) logMsg.push(err);
@@ -259,9 +259,11 @@ const app = {
 
         if (type == MessageType.DEBUG && !this.showDebugToast()) return;
 
-        this.notificationManager().then((manager) => {
-            manager.addNotification({ title: title, text: msg, type: type.name });
-        })
+        if (!(silence ?? false)) {
+            this.notificationManager().then((manager) => {
+                manager.addNotification({ title: title, text: msg, type: type.name });
+            })
+        }
     },
     showDebugToast: () => false,
     async request(path, requestData = {api: "labrinth", method: "GET", version: 3}) {
@@ -294,7 +296,7 @@ const app = {
                     staleTime: 300000
                 }).then(obj => {
                     return validateModrinthResponse(obj, (msg) => {
-                        if (!silenceError) this.error(`Project Info Getter`, msg)
+                        this.error(`Project Info Getter`, msg, null, silenceError)
                         return { id: id }
                     })
                 })
