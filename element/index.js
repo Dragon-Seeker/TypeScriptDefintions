@@ -436,6 +436,11 @@ Element.prototype.collapsible = function (tooltip, state, consumer) {
                 .with({title: tooltip ?? ""})
                 .addStyle({style: { padding: "0px" }});
 
+            state.onChange((newValue) => {
+                value = newValue;
+                onPress(newValue, btn)
+            });
+
             collapsible = holder.div().addStyle({
                 style: {
                     flexDirection: "column",
