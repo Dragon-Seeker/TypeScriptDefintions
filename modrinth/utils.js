@@ -243,7 +243,7 @@ const app = {
             return await client.fetchQuery(options);
         })
     },
-    debug(title, msg, err, silence) { this.infomUser(MessageType.DEBUG, title, msg, err); },
+    debug(title, msg, err, silence) { this.infomUser(MessageType.DEBUG, title, msg, err, silence); },
     info(title, msg) { this.infomUser(MessageType.INFO, title, msg); },
     success(title, msg) { this.infomUser(MessageType.SUCCESS, title, msg); },
     warn(title, msg, err, silence) { this.infomUser(MessageType.WARN, title, msg, err, silence); },
@@ -363,13 +363,13 @@ const app = {
     },
     teamFor(teamTarget) {
         const teamId = teamTarget.team_id || teamTarget;
-        const queryKey = [];
+        var queryKey = [];
 
         if (teamTarget.username)          queryKey = ["user", teamTarget.id, "members"];
         else if (teamTarget.project_type) queryKey = ["project", teamTarget.id, "members"];
         else                              queryKey = ["team", teamId, "members"]
 
-        const projectTarget = organizationTarget.organization != null;
+        const projectTarget = teamTarget.organization != null;
         return this.fetchQuery({
             queryKey: queryKey,
             queryFn: () => this.request(`/team/${teamId}/members`),
@@ -381,9 +381,9 @@ const app = {
             })
         })
     },
-    organizationFor(organizationTarget) {
+    organizationFor(organizationTarget, silence) {
         const organizationId = organizationTarget.organization || organizationTarget;
-        const queryKey = [];
+        var queryKey = [];
 
         if (organizationTarget.username)          queryKey = ["user", organizationTarget.id, "organization"];
         else if (organizationTarget.project_type) queryKey = ["project", organizationTarget.id, "organization"];
@@ -396,7 +396,7 @@ const app = {
             staleTime: 300000
         }).then(obj => {
             return validateModrinthResponse(obj, (msg) => {
-                this.error(`Organization Info Getter`, msg)
+                this.error(`Organization Info Getter`, msg, null, silence)
                 return [];
             })
         })
