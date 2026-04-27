@@ -421,7 +421,7 @@ const app = {
             staleTime: 300000
         }).then(obj => {
             return validateModrinthResponse(obj, (msg) => {
-                this.error("Thread Getter", error)
+                this.error("Thread Getter", msg)
                 return [];
             })
         })
@@ -439,7 +439,7 @@ const app = {
             staleTime: 300000
         }).then(obj => {
             return validateModrinthResponse(obj, (msg) => {
-                this.error("Projects Owner Getter", error)
+                this.error("Projects Owner Getter", msg)
                 return [];
             })
         })

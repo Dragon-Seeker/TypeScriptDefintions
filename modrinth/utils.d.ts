@@ -371,15 +371,15 @@ declare interface AppWrapper {
         staleTime?: number 
     }): Promise<TData>;
     /** Send debug message to conolse and modrinth app */
-    debug(title: string, msg : string|object, err?: Error, silence: boolean): void,
+    debug(title: string, msg : string|object, err?: Error, silence?: boolean): void,
     /**  Send info message to conolse and modrinth app  */
     info(title: string, msg : string|object): void,
     /** Send success message to conolse and modrinth app */
     success(title: string, msg : string|object): void,
     /** Send warn message to conolse and modrinth app */
-    warn(title: string, msg : string|object, err?: Error, silence: boolean): void,
+    warn(title: string, msg : string|object, err?: Error, silence?: boolean): void,
     /** Send error message to conolse and modrinth app */
-    error(title: string, msg : string|object, err?: Error, silence: boolean): void,
+    error(title: string, msg : string|object, err?: Error, silence?: boolean): void,
     /**
      * Used to send message to the browsers console and possibly to the modrinth notification system
      * @param {MessageType|string} type - Type of message being one of the 5 possible types i.e. DEBUG, INFO, SUCCESS, WARN, ERROR
@@ -399,7 +399,7 @@ declare interface AppWrapper {
     request(path: string, requestData: RequestData): Promise<object|ModrinthApiError|Error>;
     projectIdFromURl(url: string): Promise<Identifier>;
     projectFromUrl(url: string): Promise<ModrinthProject>;
-    projectFor(id: Slug|Identifier, silenceError: boolean): Promise<ModrinthProject>;
+    projectFor(id: Slug|Identifier, silenceError?: boolean): Promise<ModrinthProject>;
     projectIdFor(id: Slug|Identifier): Promise<Identifier>;
     projectExists(id: Slug|Identifier): Promise<boolean>;
     projectVersionFor(projectId: Slug|Identifier, versionId: Version|Identifier): Promise<ModrinthVersion>;
@@ -407,7 +407,7 @@ declare interface AppWrapper {
     primaryFileUrlsFor(projectId: Slug|Identifier): Promise<String[]>;
     keyedPrimaryFileUrlsFor(projectId: Slug|Identifier): Promise<Map<string, string>>;
     teamFor(teamTarget: Identifier | ModrinthProject | ModrinthUser): Promise<ModrinthTeam>;
-    organizationFor(organizationTarget: Identifier | ModrinthProject| ModrinthUser, silenceError: boolean): Promise<ModrinthOrganization>;
+    organizationFor(organizationTarget: Identifier | ModrinthProject| ModrinthUser, silenceError?: boolean): Promise<ModrinthOrganization>;
     userFor(userID: Identifier): Promise<ModrinthUser>
     threadFor(threadTarget: Identifier | ModrinthProject): Promise<{messages: Array<{body: {type: string}, verdict: string}>}>
     projectsFromOwner(ownerTarget: ModrinthUser | ModrinthOrganization | string): Array<ModrinthProject>
